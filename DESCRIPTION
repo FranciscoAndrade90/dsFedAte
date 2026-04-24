@@ -1,11 +1,18 @@
 Package: dsRctFed
-Title: What the Package Does (One Line, Title Case)
+Title: Compute Local ATE From Regression Coefficients
 Version: 0.0.0.9000
 Authors@R: 
-    person("First", "Last", , "first.last@example.com", role = c("aut", "cre"))
-Description: What the package does (one paragraph).
-License: `use_mit_license()`, `use_gpl3_license()` or friends to pick a
-    license
+    Authors@R: 
+  c(person(given = "Francisco",
+           family = "Andrade",
+           role = c("aut", "cre"),
+           ),
+    person(given = "Julie",
+           family = "Josse",
+           role = "aut"))
+Description: Based on “Federated Causal Inference: Multi-Studies ATE Estimation Beyond Meta-Analysis” (R. Khellaf, A. Bellet, and J. Josse, 2025), this package implements an aggregate server-side function that computes the local average treatment effect (ATE) using regression coefficients provided by the analyst (client).
+License: AGPL (>= 3)
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.3
+Additional_repositories: https://cran.obiba.org/
