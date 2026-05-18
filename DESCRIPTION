@@ -14,5 +14,11 @@ Description: Based on “Federated Causal Inference: Multi-Studies ATE Estimatio
 License: AGPL (>= 3)
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.3.3
+RoxygenNote: 8.0.0
 Additional_repositories: https://cran.obiba.org/
+Imports:
+    cli,
+    dsBase
+Suggests:
+    devtools,
+    testthat (>= 3.0.0)

@@ -25,8 +25,8 @@ covariates (treatment minus control).}
 }
 \value{
 A list containing:
-\item{ate}{The local average treatment effect estimate \eqn{\tau_k}}
-\item{n}{The sample size \eqn{n_k} on this server}
+\item{n_k}{The sample size \eqn{n_k} on this server}
+\item{tau_k}{The local average treatment effect estimate \eqn{\hat{\tau}_k}}
 }
 \description{
 Server-side function that computes the local average treatment effect (ATE)
@@ -34,4 +34,13 @@ using regression coefficients provided by the client after federated linear
 regression. The function calculates the local ATE for the data on this server
 and returns it along with the sample size to the client for aggregation across
 all servers. This is an aggregate function.
+}
+\examples{
+\dontrun{
+# This function is called server-side via datashield.aggregate().
+# Direct invocation for local testing only:
+df <- data.frame(X1 = rnorm(20), X2 = rnorm(20), W = rbinom(20, 1, 0.5))
+options(datashield.privacyControlLevel = "banana", nfilter.subset = 3)
+localAteDS("df", "X1,X2", "W", "0.5", "0.1,0.2")
+}
 }
