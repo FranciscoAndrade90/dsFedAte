@@ -1,64 +1,105 @@
-#' Compute local average treatment effect from regression coefficients
+#' Compute local statistics for the federated ATE and its variance
 #'
-#' Server-side function that computes the local average treatment effect (ATE)
-#' using regression coefficients provided by the client after federated linear
-#' regression. The function calculates the local ATE for the data on this server
-#' and returns it along with the sample size to the client for aggregation across
-#' all servers. This is an aggregate function.
+#' Server-side aggregate function called after the federated GLM has converged.
+#' Given the pooled arm coefficients broadcast back by the client, the function
+#' computes the local ATE, the residual sum of squares for both arms (needed
+#' for \eqn{\hat\sigma^2}), and a projected covariance scalar (needed for the
+#' covariate-mean uncertainty term).  All five quantities are returned so the
+#' client can assemble the full delta-method variance in a single round-trip.
 #'
-#' @param base_name A character string specifying the name of the data frame on
-#'   the server side.
-#' @param covariate_names_str A character string containing comma-separated
-#'   covariate variable names.
-#' @param treatment_name Character. The name of the treatment assignment variable.
-#'   Should be a binary indicator distinguishing treatment and control groups.
-#' @param tau_str A character string representation of a numeric value for the
-#'   difference between treatment and control group intercepts (treatment minus control).
-#' @param gamma_str A character string of comma-separated values representing the
-#'   differences between treatment and control group regression coefficients for
-#'   covariates (treatment minus control).
+#' @param base_name A character string naming the server-side data frame.
+#' @param outcome_name A character string naming the outcome variable inside
+#'   \code{base_name}.
+#' @param covariate_names_str A character string of comma-separated covariate
+#'   names.
+#' @param treatment_name A character string naming the binary treatment
+#'   indicator inside \code{base_name}.
+#' @param alpha0_str Character. Intercept of the control-arm model.
+#' @param beta0_str Character. Comma-separated slope coefficients of the
+#'   control-arm model.
+#' @param alpha1_str Character. Intercept of the treated-arm model.
+#' @param beta1_str Character. Comma-separated slope coefficients of the
+#'   treated-arm model.
 #'
-#' @return A list containing:
-#'   \item{n_k}{The sample size \eqn{n_k} on this server}
-#'   \item{tau_k}{The local average treatment effect estimate \eqn{\hat{\tau}_k}}
+#' @return A list with six elements:
+#'   \item{n_k}{Total sample size on this server.}
+#'   \item{n_k_1}{Number of treated observations on this server.}
+#'   \item{tau_k}{Local ATE estimate \eqn{\hat\tau_k}.}
+#'   \item{x_bar_k}{Vector of local covariate means (length \eqn{d}).}
+#'   \item{s_k_scalar}{Local sum of squared deviations of the projected index
+#'     \eqn{X_i^\top\Delta\hat\beta} from its local mean; used to pool
+#'     \eqn{\Delta\hat\beta^\top\hat\Sigma\Delta\hat\beta}.}
+#'   \item{rss_k}{Residual sum of squares across both arms using the federated
+#'     coefficients; used to compute \eqn{\hat\sigma^2}.}
 #' @importFrom dsBase checkPermissivePrivacyControlLevel listDisclosureSettingsDS
 #' @importFrom cli cli_abort
 #' @examples
 #' \dontrun{
-#' # This function is called server-side via datashield.aggregate().
-#' # Direct invocation for local testing only:
-#' df <- data.frame(X1 = rnorm(20), X2 = rnorm(20), W = rbinom(20, 1, 0.5))
+#' df <- data.frame(
+#'   X1 = rnorm(30), X2 = rnorm(30),
+#'   W  = rbinom(30, 1, 0.5)
+#' )
+#' df$Y <- 1 + 0.5 * df$W + 0.3 * df$X1 + rnorm(30, sd = 0.5)
 #' options(datashield.privacyControlLevel = "banana", nfilter.subset = 3)
-#' localAteDS("df", "X1,X2", "W", "0.5", "0.1,0.2")
+#' localAteDS("df", "Y", "X1,X2", "W", "1.0", "0.3,0.0", "1.5", "0.3,0.0")
 #' }
 #' @export
-localAteDS <- function(base_name, covariate_names_str, treatment_name, tau_str, gamma_str) {
+localAteDS <- function(base_name, outcome_name, covariate_names_str, treatment_name,
+                       alpha0_str, beta0_str, alpha1_str, beta1_str) {
+
   # 1. Privacy control level check
   dsBase::checkPermissivePrivacyControlLevel(c("permissive", "banana", "carrot"))
 
-  # 2. Parse arguments into appropriate types
+  # 2. Parse arguments
   covariate_names <- scan(
     text = covariate_names_str, what = "", sep = ",",
     strip.white = TRUE, quiet = TRUE
   )
-  tau   <- .parse_numeric_scalar(tau_str, "tau_str")
-  gamma <- .parse_numeric_vector(gamma_str, "gamma_str")
+  alpha0 <- .parse_numeric_scalar(alpha0_str, "alpha0_str")
+  alpha1 <- .parse_numeric_scalar(alpha1_str, "alpha1_str")
+  beta0  <- .parse_numeric_vector(beta0_str,  "beta0_str")
+  beta1  <- .parse_numeric_vector(beta1_str,  "beta1_str")
 
   base <- eval(parse(text = base_name), envir = parent.frame())
 
   # 3. Disclosure check
   .checkDisclosureRisk(base)
 
-  n_k <- nrow(base)
+  # 4. Extract data components
+  W     <- base[[treatment_name]]
+  Y     <- base[[outcome_name]]
+  X_mat <- as.matrix(base[, covariate_names, drop = FALSE])
 
-  # 4. Computation of local ATE
-  X_mat   <- as.matrix(base[, covariate_names, drop = FALSE])
+  tau   <- alpha1 - alpha0
+  gamma <- beta1  - beta0
+
+  n_k   <- nrow(base)
+  idx_1 <- W == 1L
+
+  # 5. Local ATE
   x_bar_k <- colMeans(X_mat, na.rm = TRUE)
   tau_k   <- as.numeric(tau + sum(x_bar_k * gamma))
 
+  # 6. Number of treated observations
+  n_k_1 <- sum(idx_1)
+
+  # 7. Residual sum of squares across both arms
+  pred_1 <- alpha1 + as.numeric(X_mat[ idx_1, , drop = FALSE] %*% beta1)
+  pred_0 <- alpha0 + as.numeric(X_mat[!idx_1, , drop = FALSE] %*% beta0)
+  rss_k  <- sum((Y[ idx_1] - pred_1)^2) + sum((Y[!idx_1] - pred_0)^2)
+
+  # 8. Projected covariance scalar for the second term of the delta-method variance
+  proj_i     <- as.numeric(X_mat %*% gamma)
+  proj_bar_k <- sum(x_bar_k * gamma)
+  s_k_scalar <- sum((proj_i - proj_bar_k)^2)
+
   return(list(
-    n_k   = n_k,
-    tau_k = tau_k
+    n_k        = n_k,
+    n_k_1      = n_k_1,
+    tau_k      = tau_k,
+    x_bar_k    = x_bar_k,
+    s_k_scalar = s_k_scalar,
+    rss_k      = rss_k
   ))
 }
 
@@ -93,7 +134,9 @@ localAteDS <- function(base_name, covariate_names_str, treatment_name, tau_str, 
 #' @keywords internal
 #' @noRd
 .parse_numeric_vector <- function(x_str, arg_name) {
-  vals <- suppressWarnings(as.numeric(unlist(strsplit(x_str, split = ",", fixed = TRUE))))
+  vals <- suppressWarnings(
+    as.numeric(unlist(strsplit(x_str, split = ",", fixed = TRUE)))
+  )
   if (any(is.na(vals))) {
     cli::cli_abort(c(
       "x" = "`{arg_name}` could not be fully parsed as a numeric vector.",

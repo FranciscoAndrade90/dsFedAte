@@ -2,45 +2,69 @@
 % Please edit documentation in R/localAteDS.R
 \name{localAteDS}
 \alias{localAteDS}
-\title{Compute local average treatment effect from regression coefficients}
+\title{Compute local statistics for the federated ATE and its variance}
 \usage{
-localAteDS(base_name, covariate_names_str, treatment_name, tau_str, gamma_str)
+localAteDS(
+  base_name,
+  outcome_name,
+  covariate_names_str,
+  treatment_name,
+  alpha0_str,
+  beta0_str,
+  alpha1_str,
+  beta1_str
+)
 }
 \arguments{
-\item{base_name}{A character string specifying the name of the data frame on
-the server side.}
+\item{base_name}{A character string naming the server-side data frame.}
 
-\item{covariate_names_str}{A character string containing comma-separated
-covariate variable names.}
+\item{outcome_name}{A character string naming the outcome variable inside
+\code{base_name}.}
 
-\item{treatment_name}{Character. The name of the treatment assignment variable.
-Should be a binary indicator distinguishing treatment and control groups.}
+\item{covariate_names_str}{A character string of comma-separated covariate
+names.}
 
-\item{tau_str}{A character string representation of a numeric value for the
-difference between treatment and control group intercepts (treatment minus control).}
+\item{treatment_name}{A character string naming the binary treatment
+indicator inside \code{base_name}.}
 
-\item{gamma_str}{A character string of comma-separated values representing the
-differences between treatment and control group regression coefficients for
-covariates (treatment minus control).}
+\item{alpha0_str}{Character. Intercept of the control-arm model.}
+
+\item{beta0_str}{Character. Comma-separated slope coefficients of the
+control-arm model.}
+
+\item{alpha1_str}{Character. Intercept of the treated-arm model.}
+
+\item{beta1_str}{Character. Comma-separated slope coefficients of the
+treated-arm model.}
 }
 \value{
-A list containing:
-\item{n_k}{The sample size \eqn{n_k} on this server}
-\item{tau_k}{The local average treatment effect estimate \eqn{\hat{\tau}_k}}
+A list with six elements:
+\item{n_k}{Total sample size on this server.}
+\item{n_k_1}{Number of treated observations on this server.}
+\item{tau_k}{Local ATE estimate \eqn{\hat\tau_k}.}
+\item{x_bar_k}{Vector of local covariate means (length \eqn{d}).}
+\item{s_k_scalar}{Local sum of squared deviations of the projected index
+\eqn{X_i^\top\Delta\hat\beta} from its local mean; used to pool
+\eqn{\Delta\hat\beta^\top\hat\Sigma\Delta\hat\beta}.}
+\item{rss_k}{Residual sum of squares across both arms using the federated
+coefficients; used to compute \eqn{\hat\sigma^2}.}
 }
 \description{
-Server-side function that computes the local average treatment effect (ATE)
-using regression coefficients provided by the client after federated linear
-regression. The function calculates the local ATE for the data on this server
-and returns it along with the sample size to the client for aggregation across
-all servers. This is an aggregate function.
+Server-side aggregate function called after the federated GLM has converged.
+Given the pooled arm coefficients broadcast back by the client, the function
+computes the local ATE, the residual sum of squares for both arms (needed
+for \eqn{\hat\sigma^2}), and a projected covariance scalar (needed for the
+covariate-mean uncertainty term).  All five quantities are returned so the
+client can assemble the full delta-method variance in a single round-trip.
 }
 \examples{
 \dontrun{
-# This function is called server-side via datashield.aggregate().
-# Direct invocation for local testing only:
-df <- data.frame(X1 = rnorm(20), X2 = rnorm(20), W = rbinom(20, 1, 0.5))
+df <- data.frame(
+  X1 = rnorm(30), X2 = rnorm(30),
+  W  = rbinom(30, 1, 0.5)
+)
+df$Y <- 1 + 0.5 * df$W + 0.3 * df$X1 + rnorm(30, sd = 0.5)
 options(datashield.privacyControlLevel = "banana", nfilter.subset = 3)
-localAteDS("df", "X1,X2", "W", "0.5", "0.1,0.2")
+localAteDS("df", "Y", "X1,X2", "W", "1.0", "0.3,0.0", "1.5", "0.3,0.0")
 }
 }
