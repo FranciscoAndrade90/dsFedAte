@@ -33,14 +33,14 @@ assign("test_df", make_test_data(), envir = .GlobalEnv)
 
 # Happy path: return structure -------------------------------------------------
 
-test_that("localAteDS returns all six expected elements", {
+test_that("localAteDS returns all five expected elements", {
   options(datashield.privacyControlLevel = "banana")
   test_df <- make_test_data()
   result  <- localAteDS("test_df", "Y", "X1,X2", "W",
              as.character(ALPHA0), paste(BETA0, collapse = ","),
              as.character(ALPHA1), paste(BETA1, collapse = ","))
   expect_type(result, "list")
-  expect_named(result, c("n_k", "n_k_1", "tau_k", "x_bar_k", "s_k_scalar", "rss_k"))
+  expect_named(result, c("n_k", "n_k_1", "tau_k", "s_k_scalar", "rss_k"))
 })
 
 test_that("localAteDS n_k equals nrow of the data frame", {
@@ -77,15 +77,6 @@ test_that("localAteDS tau_k matches manual computation", {
   x_bar    <- colMeans(test_df[, c("X1", "X2")])
   tau_expected <- (ALPHA1 - ALPHA0) + sum(x_bar * (BETA1 - BETA0))
   expect_equal(result$tau_k, tau_expected)
-})
-
-test_that("localAteDS x_bar_k has length d", {
-  test_df <- make_test_data()
-  result  <- localAteDS("test_df", "Y", "X1,X2", "W",
-             as.character(ALPHA0), paste(BETA0, collapse = ","),
-             as.character(ALPHA1), paste(BETA1, collapse = ","))
-  expect_length(result$x_bar_k, 2L)
-  expect_equal(result$x_bar_k, colMeans(test_df[, c("X1", "X2")]))
 })
 
 test_that("localAteDS rss_k is non-negative", {
@@ -139,8 +130,33 @@ test_that("localAteDS s_k_scalar is positive for nonzero gamma", {
 test_that("localAteDS handles a single covariate", {
   assign("test_df", make_test_data(), envir = .GlobalEnv)
   result  <- localAteDS("test_df", "Y", "X1", "W", "1.0", "0.3", "1.5", "0.3")
-  expect_named(result, c("n_k", "n_k_1", "tau_k", "x_bar_k", "s_k_scalar", "rss_k"))
+  expect_named(result, c("n_k", "n_k_1", "tau_k", "s_k_scalar", "rss_k"))
   expect_false(is.na(result$tau_k))
+})
+
+# compute_variance = FALSE -------------------------------------------------
+
+test_that("localAteDS with compute_variance=FALSE returns only three elements", {
+  test_df <- make_test_data()
+  result  <- localAteDS("test_df", "Y", "X1,X2", "W",
+             as.character(ALPHA0), paste(BETA0, collapse = ","),
+             as.character(ALPHA1), paste(BETA1, collapse = ","),
+             compute_variance = FALSE)
+  expect_named(result, c("n_k", "n_k_1", "tau_k"))
+})
+
+test_that("localAteDS compute_variance=FALSE tau_k matches full call", {
+  test_df  <- make_test_data()
+  full     <- localAteDS("test_df", "Y", "X1,X2", "W",
+              as.character(ALPHA0), paste(BETA0, collapse = ","),
+              as.character(ALPHA1), paste(BETA1, collapse = ","))
+  ate_only <- localAteDS("test_df", "Y", "X1,X2", "W",
+              as.character(ALPHA0), paste(BETA0, collapse = ","),
+              as.character(ALPHA1), paste(BETA1, collapse = ","),
+              compute_variance = FALSE)
+  expect_equal(ate_only$tau_k, full$tau_k)
+  expect_equal(ate_only$n_k,   full$n_k)
+  expect_equal(ate_only$n_k_1, full$n_k_1)
 })
 
 # Sad path: privacy control level ----------------------------------------------

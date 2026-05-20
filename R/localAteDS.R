@@ -1,11 +1,11 @@
-#' Compute local statistics for the federated ATE and its variance
+#' Compute local statistics for the federated ATE and (optionally) its variance
 #'
 #' Server-side aggregate function called after the federated GLM has converged.
-#' Given the pooled arm coefficients broadcast back by the client, the function
-#' computes the local ATE, the residual sum of squares for both arms (needed
-#' for \eqn{\hat\sigma^2}), and a projected covariance scalar (needed for the
-#' covariate-mean uncertainty term).  All five quantities are returned so the
-#' client can assemble the full delta-method variance in a single round-trip.
+#' Always returns the quantities needed for the ATE point estimate.  When
+#' \code{compute_variance = TRUE} (the default) it also returns the residual
+#' sum of squares and the projected scatter scalar required for the delta-method
+#' variance; set it to \code{FALSE} to limit disclosure to the minimum needed
+#' for the point estimate only.
 #'
 #' @param base_name A character string naming the server-side data frame.
 #' @param outcome_name A character string naming the outcome variable inside
@@ -20,12 +20,14 @@
 #' @param alpha1_str Character. Intercept of the treated-arm model.
 #' @param beta1_str Character. Comma-separated slope coefficients of the
 #'   treated-arm model.
+#' @param compute_variance Logical. If \code{TRUE} (default), also compute and
+#'   return \code{rss_k} and \code{s_k_scalar} for variance estimation.
 #'
-#' @return A list with six elements:
+#' @return A list with three elements always present:
 #'   \item{n_k}{Total sample size on this server.}
 #'   \item{n_k_1}{Number of treated observations on this server.}
 #'   \item{tau_k}{Local ATE estimate \eqn{\hat\tau_k}.}
-#'   \item{x_bar_k}{Vector of local covariate means (length \eqn{d}).}
+#'   When \code{compute_variance = TRUE}, two additional elements are included:
 #'   \item{s_k_scalar}{Local sum of squared deviations of the projected index
 #'     \eqn{X_i^\top\Delta\hat\beta} from its local mean; used to pool
 #'     \eqn{\Delta\hat\beta^\top\hat\Sigma\Delta\hat\beta}.}
@@ -45,7 +47,8 @@
 #' }
 #' @export
 localAteDS <- function(base_name, outcome_name, covariate_names_str, treatment_name,
-                       alpha0_str, beta0_str, alpha1_str, beta1_str) {
+                       alpha0_str, beta0_str, alpha1_str, beta1_str,
+                       compute_variance = TRUE) {
 
   # 1. Privacy control level check
   dsBase::checkPermissivePrivacyControlLevel(c("permissive", "banana", "carrot"))
@@ -70,34 +73,37 @@ localAteDS <- function(base_name, outcome_name, covariate_names_str, treatment_n
   Y     <- base[[outcome_name]]
   X_mat <- as.matrix(base[, covariate_names, drop = FALSE])
 
-  tau   <- alpha1 - alpha0
-  gamma <- beta1  - beta0
+  delta_alpha <- alpha1 - alpha0
+  gamma       <- beta1  - beta0
 
   n_k   <- nrow(base)
   idx_1 <- W == 1L
 
-  # 5. Local ATE
-  x_bar_k <- colMeans(X_mat, na.rm = TRUE)
-  tau_k   <- as.numeric(tau + sum(x_bar_k * gamma))
+  # 5. Local ATE and projected scatter
+  #    proj_bar_k = X̄_k · γ̂ = mean(X_i · γ̂); no need to expose X̄_k itself.
+  proj_i     <- as.numeric(X_mat %*% gamma)
+  proj_bar_k <- mean(proj_i)
+  tau_k      <- as.numeric(delta_alpha + proj_bar_k)
 
   # 6. Number of treated observations
   n_k_1 <- sum(idx_1)
+
+  if (!compute_variance) {
+    return(list(n_k = n_k, n_k_1 = n_k_1, tau_k = tau_k))
+  }
 
   # 7. Residual sum of squares across both arms
   pred_1 <- alpha1 + as.numeric(X_mat[ idx_1, , drop = FALSE] %*% beta1)
   pred_0 <- alpha0 + as.numeric(X_mat[!idx_1, , drop = FALSE] %*% beta0)
   rss_k  <- sum((Y[ idx_1] - pred_1)^2) + sum((Y[!idx_1] - pred_0)^2)
 
-  # 8. Projected covariance scalar for the second term of the delta-method variance
-  proj_i     <- as.numeric(X_mat %*% gamma)
-  proj_bar_k <- sum(x_bar_k * gamma)
+  # 8. Within-site projected scatter (parallel-axis decomposition)
   s_k_scalar <- sum((proj_i - proj_bar_k)^2)
 
   return(list(
     n_k        = n_k,
     n_k_1      = n_k_1,
     tau_k      = tau_k,
-    x_bar_k    = x_bar_k,
     s_k_scalar = s_k_scalar,
     rss_k      = rss_k
   ))
