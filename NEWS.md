@@ -10,16 +10,15 @@
 
 ## New features
 
-* `localAteDS()` now returns six values instead of two: `n_k`, `n_k_1`,
-  `tau_k`, `x_bar_k`, `s_k_scalar`, and `rss_k`. The four new quantities
-  support federated variance estimation without any additional communication
-  round:
-  - `n_k_1`: number of treated observations (needed for p-hat).
-  - `x_bar_k`: local covariate means (needed for the global mean X-bar).
-  - `s_k_scalar`: within-site projected scatter scalar (needed for the
-    covariate-mean uncertainty term via the parallel-axis decomposition).
-  - `rss_k`: residual sum of squares across both arms (needed for
-    sigma-hat-squared with pooled df n - 2(d+1)).
+* `localAteDS()` gains a `compute_variance` argument (default `TRUE`). When
+  `TRUE`, two additional scalars are returned beyond the point-estimate
+  quantities `n_k`, `n_k_1`, and `tau_k`:
+  - `s_k_scalar`: within-site projected scatter scalar, used for the
+    covariate-mean uncertainty term via the parallel-axis decomposition.
+  - `rss_k`: residual sum of squares across both arms, used for
+    sigma-hat-squared with pooled df n - 2(d+1).
+  Setting `compute_variance = FALSE` limits disclosure to the three scalars
+  strictly needed for the point estimate.
 
 ## Earlier changes
 
