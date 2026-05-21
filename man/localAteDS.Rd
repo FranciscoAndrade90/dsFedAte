@@ -2,7 +2,7 @@
 % Please edit documentation in R/localAteDS.R
 \name{localAteDS}
 \alias{localAteDS}
-\title{Compute local statistics for the federated ATE and its variance}
+\title{Compute local statistics for the federated ATE and (optionally) its variance}
 \usage{
 localAteDS(
   base_name,
@@ -12,7 +12,8 @@ localAteDS(
   alpha0_str,
   beta0_str,
   alpha1_str,
-  beta1_str
+  beta1_str,
+  compute_variance = TRUE
 )
 }
 \arguments{
@@ -36,13 +37,16 @@ control-arm model.}
 
 \item{beta1_str}{Character. Comma-separated slope coefficients of the
 treated-arm model.}
+
+\item{compute_variance}{Logical. If \code{TRUE} (default), also compute and
+return \code{rss_k} and \code{s_k_scalar} for variance estimation.}
 }
 \value{
-A list with six elements:
+A list with three elements always present:
 \item{n_k}{Total sample size on this server.}
 \item{n_k_1}{Number of treated observations on this server.}
 \item{tau_k}{Local ATE estimate \eqn{\hat\tau_k}.}
-\item{x_bar_k}{Vector of local covariate means (length \eqn{d}).}
+When \code{compute_variance = TRUE}, two additional elements are included:
 \item{s_k_scalar}{Local sum of squared deviations of the projected index
 \eqn{X_i^\top\Delta\hat\beta} from its local mean; used to pool
 \eqn{\Delta\hat\beta^\top\hat\Sigma\Delta\hat\beta}.}
@@ -51,11 +55,11 @@ coefficients; used to compute \eqn{\hat\sigma^2}.}
 }
 \description{
 Server-side aggregate function called after the federated GLM has converged.
-Given the pooled arm coefficients broadcast back by the client, the function
-computes the local ATE, the residual sum of squares for both arms (needed
-for \eqn{\hat\sigma^2}), and a projected covariance scalar (needed for the
-covariate-mean uncertainty term).  All five quantities are returned so the
-client can assemble the full delta-method variance in a single round-trip.
+Always returns the quantities needed for the ATE point estimate.  When
+\code{compute_variance = TRUE} (the default) it also returns the residual
+sum of squares and the projected scatter scalar required for the delta-method
+variance; set it to \code{FALSE} to limit disclosure to the minimum needed
+for the point estimate only.
 }
 \examples{
 \dontrun{
