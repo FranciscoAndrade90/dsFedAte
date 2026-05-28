@@ -33,8 +33,14 @@
 #'     \eqn{\Delta\hat\beta^\top\hat\Sigma\Delta\hat\beta}.}
 #'   \item{rss_k}{Residual sum of squares across both arms using the federated
 #'     coefficients; used to compute \eqn{\hat\sigma^2}.}
+#' @references
+#' Khellaf, R., Bellet, A., and Josse, J. (2025).
+#' Federated Causal Inference: Multi-Study ATE Estimation beyond Meta-Analysis.
+#' \emph{Proceedings of the 28th International Conference on Artificial
+#' Intelligence and Statistics (AISTATS 2025)}.
 #' @importFrom dsBase checkPermissivePrivacyControlLevel listDisclosureSettingsDS
 #' @importFrom cli cli_abort
+#' @importFrom stats model.matrix as.formula
 #' @examples
 #' \dontrun{
 #' df <- data.frame(
@@ -71,7 +77,10 @@ localAteDS <- function(base_name, outcome_name, covariate_names_str, treatment_n
   # 4. Extract data components
   W     <- base[[treatment_name]]
   Y     <- base[[outcome_name]]
-  X_mat <- as.matrix(base[, covariate_names, drop = FALSE])
+  X_mat <- model.matrix(
+    as.formula(paste("~", paste(covariate_names, collapse = "+"))),
+    data = base[, covariate_names, drop = FALSE]
+  )[, -1L, drop = FALSE]
 
   delta_alpha <- alpha1 - alpha0
   gamma       <- beta1  - beta0

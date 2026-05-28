@@ -72,3 +72,9 @@ options(datashield.privacyControlLevel = "banana", nfilter.subset = 3)
 localAteDS("df", "Y", "X1,X2", "W", "1.0", "0.3,0.0", "1.5", "0.3,0.0")
 }
 }
+\references{
+Khellaf, R., Bellet, A., and Josse, J. (2025).
+Federated Causal Inference: Multi-Study ATE Estimation beyond Meta-Analysis.
+\emph{Proceedings of the 28th International Conference on Artificial
+Intelligence and Statistics (AISTATS 2025)}.
+}

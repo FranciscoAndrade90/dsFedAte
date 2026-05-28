@@ -1,2 +1,4 @@
 AggregateMethods:
     localAteDS
+AssignMethods:
+    addStudyIdDS

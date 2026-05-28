@@ -10,6 +10,20 @@
 
 ## New features
 
+* New server-side assign function `addStudyIdDS()` supports the adjusted GD
+  estimator (Definition 9 of Khellaf, Bellet & Josse 2025). It appends K-1
+  explicit integer dummy columns (`study_id2`, …, `study_idK`) to the
+  server-side data frame. Plain integers are used rather than a factor because
+  `model.frame()` inside `ds.glm()` drops empty factor levels to a single
+  level on each server (every server holds one study), which triggers R's
+  "contrasts can be applied only to factors with ≥ 2 levels" error.
+  The function is declared under `AssignMethods` in `inst/DATASHIELD` so that
+  `DSI::datashield.assign()` can invoke it.
+
+* `localAteDS()` now uses `model.matrix()` instead of `as.matrix()` to build
+  the covariate design matrix, correctly handling any column type via R's
+  formula interface.
+
 * `localAteDS()` gains a `compute_variance` argument (default `TRUE`). When
   `TRUE`, two additional scalars are returned beyond the point-estimate
   quantities `n_k`, `n_k_1`, and `tau_k`:
