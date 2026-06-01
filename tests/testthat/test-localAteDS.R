@@ -33,14 +33,14 @@ assign("test_df", make_test_data(), envir = .GlobalEnv)
 
 # Happy path: return structure -------------------------------------------------
 
-test_that("localAteDS returns all five expected elements", {
+test_that("localAteDS returns all six expected elements (heterogeneous=TRUE default)", {
   options(datashield.privacyControlLevel = "banana")
   test_df <- make_test_data()
   result  <- localAteDS("test_df", "Y", "X1,X2", "W",
              as.character(ALPHA0), paste(BETA0, collapse = ","),
              as.character(ALPHA1), paste(BETA1, collapse = ","))
   expect_type(result, "list")
-  expect_named(result, c("n_k", "n_k_1", "tau_k", "s_k_scalar", "rss_k"))
+  expect_named(result, c("n_k", "n_k_1", "tau_k", "s_k_scalar", "rss_k", "n_k_X_bar"))
 })
 
 test_that("localAteDS n_k equals nrow of the data frame", {
@@ -130,7 +130,7 @@ test_that("localAteDS s_k_scalar is positive for nonzero gamma", {
 test_that("localAteDS handles a single covariate", {
   assign("test_df", make_test_data(), envir = .GlobalEnv)
   result  <- localAteDS("test_df", "Y", "X1", "W", "1.0", "0.3", "1.5", "0.3")
-  expect_named(result, c("n_k", "n_k_1", "tau_k", "s_k_scalar", "rss_k"))
+  expect_named(result, c("n_k", "n_k_1", "tau_k", "s_k_scalar", "rss_k", "n_k_X_bar"))
   expect_false(is.na(result$tau_k))
 })
 
@@ -196,4 +196,53 @@ test_that(".parse_numeric_scalar aborts on non-numeric input", {
 
 test_that(".parse_numeric_vector aborts when any element is non-numeric", {
   expect_error(.parse_numeric_vector("0.1,abc,0.3", "beta0_str"), "could not be fully parsed")
+})
+
+# heterogeneous = TRUE ---------------------------------------------------------
+
+test_that("localAteDS with heterogeneous=TRUE returns n_k_X_bar in addition to usual elements", {
+  assign("test_df", make_test_data(), envir = .GlobalEnv)
+  result <- localAteDS("test_df", "Y", "X1,X2", "W",
+             as.character(ALPHA0), paste(BETA0, collapse = ","),
+             as.character(ALPHA1), paste(BETA1, collapse = ","),
+             compute_variance = TRUE, heterogeneous = TRUE)
+  expect_named(result, c("n_k", "n_k_1", "tau_k", "s_k_scalar", "rss_k", "n_k_X_bar"))
+})
+
+test_that("localAteDS n_k_X_bar has length equal to number of covariates", {
+  assign("test_df", make_test_data(), envir = .GlobalEnv)
+  result <- localAteDS("test_df", "Y", "X1,X2", "W",
+             as.character(ALPHA0), paste(BETA0, collapse = ","),
+             as.character(ALPHA1), paste(BETA1, collapse = ","),
+             compute_variance = TRUE, heterogeneous = TRUE)
+  expect_length(result$n_k_X_bar, 2L)
+})
+
+test_that("localAteDS n_k_X_bar matches n_k times column means of X", {
+  test_df <- make_test_data()
+  assign("test_df", test_df, envir = .GlobalEnv)
+  result   <- localAteDS("test_df", "Y", "X1,X2", "W",
+               as.character(ALPHA0), paste(BETA0, collapse = ","),
+               as.character(ALPHA1), paste(BETA1, collapse = ","),
+               compute_variance = TRUE, heterogeneous = TRUE)
+  expected <- colSums(test_df[, c("X1", "X2")])
+  expect_equal(result$n_k_X_bar, expected)
+})
+
+test_that("localAteDS heterogeneous=FALSE does not include n_k_X_bar", {
+  assign("test_df", make_test_data(), envir = .GlobalEnv)
+  result <- localAteDS("test_df", "Y", "X1,X2", "W",
+             as.character(ALPHA0), paste(BETA0, collapse = ","),
+             as.character(ALPHA1), paste(BETA1, collapse = ","),
+             heterogeneous = FALSE)
+  expect_named(result, c("n_k", "n_k_1", "tau_k", "s_k_scalar", "rss_k"))
+})
+
+test_that("localAteDS compute_variance=FALSE, heterogeneous=TRUE does not include n_k_X_bar", {
+  assign("test_df", make_test_data(), envir = .GlobalEnv)
+  result <- localAteDS("test_df", "Y", "X1,X2", "W",
+             as.character(ALPHA0), paste(BETA0, collapse = ","),
+             as.character(ALPHA1), paste(BETA1, collapse = ","),
+             compute_variance = FALSE, heterogeneous = TRUE)
+  expect_named(result, c("n_k", "n_k_1", "tau_k"))
 })

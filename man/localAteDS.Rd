@@ -13,7 +13,8 @@ localAteDS(
   beta0_str,
   alpha1_str,
   beta1_str,
-  compute_variance = TRUE
+  compute_variance = TRUE,
+  heterogeneous = TRUE
 )
 }
 \arguments{
@@ -40,6 +41,15 @@ treated-arm model.}
 
 \item{compute_variance}{Logical. If \code{TRUE} (default), also compute and
 return \code{rss_k} and \code{s_k_scalar} for variance estimation.}
+
+\item{heterogeneous}{Logical. If \code{TRUE} (default) and
+\code{compute_variance = TRUE}, also return \code{n_k_X_bar} (column sums
+of the covariate design matrix, equal to n_k times the local covariate
+mean), needed for the leverage-corrected variance estimator under full
+heterogeneity (different covariate distributions and treatment probabilities
+across sites).  Set to \code{FALSE} to suppress this extra disclosure when
+heterogeneity is known to be absent.  Has no effect when
+\code{compute_variance = FALSE}.}
 }
 \value{
 A list with three elements always present:
@@ -52,6 +62,12 @@ When \code{compute_variance = TRUE}, two additional elements are included:
 \eqn{\Delta\hat\beta^\top\hat\Sigma\Delta\hat\beta}.}
 \item{rss_k}{Residual sum of squares across both arms using the federated
 coefficients; used to compute \eqn{\hat\sigma^2}.}
+When \code{compute_variance = TRUE} and \code{heterogeneous = TRUE}, one
+further element is included:
+\item{n_k_X_bar}{Numeric vector of length \eqn{d} containing the column
+sums of the covariate matrix (\eqn{n_k \bar{X}_k}); used by the client
+to assemble the global covariate mean for the leverage-corrected
+OLS noise component of the variance.}
 }
 \description{
 Server-side aggregate function called after the federated GLM has converged.

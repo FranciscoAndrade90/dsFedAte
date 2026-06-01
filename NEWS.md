@@ -1,5 +1,18 @@
 # dsRctFed 0.0.0.9000
 
+## New features
+
+* `localAteDS()` gains a `heterogeneous` argument (default `TRUE`).  When
+  `TRUE` and `compute_variance = TRUE`, the return list includes an additional
+  element `n_k_X_bar`: a numeric vector of length `d` containing the column
+  sums of the covariate design matrix (`n_k * X̄_k`).  The client uses this to
+  assemble the global covariate mean `X̄` for the leverage-corrected variance
+  estimator (Term I, eq. 17 of the companion variance paper).  Set to `FALSE`
+  to suppress this extra disclosure when heterogeneity is known to be absent.
+  Has no effect when `compute_variance = FALSE`.
+
+---
+
 ## Breaking changes
 
 * `localAteDS()` has a new signature. The old arguments `tau_str` and

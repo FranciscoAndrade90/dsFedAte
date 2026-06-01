@@ -22,6 +22,14 @@
 #'   treated-arm model.
 #' @param compute_variance Logical. If \code{TRUE} (default), also compute and
 #'   return \code{rss_k} and \code{s_k_scalar} for variance estimation.
+#' @param heterogeneous Logical. If \code{TRUE} (default) and
+#'   \code{compute_variance = TRUE}, also return \code{n_k_X_bar} (column sums
+#'   of the covariate design matrix, equal to n_k times the local covariate
+#'   mean), needed for the leverage-corrected variance estimator under full
+#'   heterogeneity (different covariate distributions and treatment probabilities
+#'   across sites).  Set to \code{FALSE} to suppress this extra disclosure when
+#'   heterogeneity is known to be absent.  Has no effect when
+#'   \code{compute_variance = FALSE}.
 #'
 #' @return A list with three elements always present:
 #'   \item{n_k}{Total sample size on this server.}
@@ -33,6 +41,12 @@
 #'     \eqn{\Delta\hat\beta^\top\hat\Sigma\Delta\hat\beta}.}
 #'   \item{rss_k}{Residual sum of squares across both arms using the federated
 #'     coefficients; used to compute \eqn{\hat\sigma^2}.}
+#'   When \code{compute_variance = TRUE} and \code{heterogeneous = TRUE}, one
+#'   further element is included:
+#'   \item{n_k_X_bar}{Numeric vector of length \eqn{d} containing the column
+#'     sums of the covariate matrix (\eqn{n_k \bar{X}_k}); used by the client
+#'     to assemble the global covariate mean for the leverage-corrected
+#'     OLS noise component of the variance.}
 #' @references
 #' Khellaf, R., Bellet, A., and Josse, J. (2025).
 #' Federated Causal Inference: Multi-Study ATE Estimation beyond Meta-Analysis.
@@ -54,7 +68,7 @@
 #' @export
 localAteDS <- function(base_name, outcome_name, covariate_names_str, treatment_name,
                        alpha0_str, beta0_str, alpha1_str, beta1_str,
-                       compute_variance = TRUE) {
+                       compute_variance = TRUE, heterogeneous = TRUE) {
 
   # 1. Privacy control level check
   dsBase::checkPermissivePrivacyControlLevel(c("permissive", "banana", "carrot"))
@@ -109,13 +123,15 @@ localAteDS <- function(base_name, outcome_name, covariate_names_str, treatment_n
   # 8. Within-site projected scatter (parallel-axis decomposition)
   s_k_scalar <- sum((proj_i - proj_bar_k)^2)
 
-  return(list(
+  result <- list(
     n_k        = n_k,
     n_k_1      = n_k_1,
     tau_k      = tau_k,
     s_k_scalar = s_k_scalar,
     rss_k      = rss_k
-  ))
+  )
+  if (heterogeneous) result$n_k_X_bar <- colSums(X_mat)
+  return(result)
 }
 
 #' @keywords internal
