@@ -34,7 +34,7 @@
 #' Federated Causal Inference: Multi-Study ATE Estimation beyond Meta-Analysis.
 #' \emph{Proceedings of the 28th International Conference on Artificial
 #' Intelligence and Statistics (AISTATS 2025)}.
-#' @importFrom dsBase checkPermissivePrivacyControlLevel
+#' @importFrom dsBase checkPermissivePrivacyControlLevel listDisclosureSettingsDS
 #' @importFrom cli cli_abort
 #' @examples
 #' \dontrun{

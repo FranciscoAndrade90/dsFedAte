@@ -18,7 +18,8 @@ RoxygenNote: 8.0.0
 Additional_repositories: https://cran.obiba.org/
 Imports:
     cli,
-    dsBase
+    dsBase,
+    stats
 Suggests:
     devtools,
     testthat (>= 3.0.0)

@@ -2,6 +2,17 @@
 
 ## New features
 
+* `localAteDS()` now computes and returns delta-method variance quantities for
+  binary outcomes when `compute_variance = TRUE`. Each site returns three
+  additional elements: `g1_raw_k` and `g0_raw_k` (unnormalised gradient sums
+  over all observations, divided by global *n* on the client), and `s_k_delta`
+  (within-site scatter of δᵢ = μ̂₁(xᵢ) − μ̂₀(xᵢ) around its local mean τ̂ₖ).
+  The per-arm Fisher information matrices are **not** returned by the server;
+  the client obtains H_w⁻¹ directly from `ds.glm(viewVarCov = TRUE)$VarCovMatrix`
+  (equal to H_w⁻¹ for binomial models, where dispersion = 1). This minimises
+  per-site disclosure. The `heterogeneous` parameter has no effect for binary
+  outcomes.
+
 * `localAteDS()` gains a `heterogeneous` argument (default `TRUE`).  When
   `TRUE` and `compute_variance = TRUE`, the return list includes an additional
   element `n_k_X_bar`: a numeric vector of length `d` containing the column

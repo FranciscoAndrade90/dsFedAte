@@ -14,7 +14,8 @@ localAteDS(
   alpha1_str,
   beta1_str,
   compute_variance = TRUE,
-  heterogeneous = TRUE
+  heterogeneous = TRUE,
+  outcome_type = "continuous"
 )
 }
 \arguments{
@@ -40,42 +41,67 @@ control-arm model.}
 treated-arm model.}
 
 \item{compute_variance}{Logical. If \code{TRUE} (default), also compute and
-return \code{rss_k} and \code{s_k_scalar} for variance estimation.}
+return the quantities needed for variance estimation.  For
+\code{outcome_type = "continuous"} these are \code{rss_k} and
+\code{s_k_scalar}; for \code{outcome_type = "binary"} they are the local
+Fisher information matrices, gradient vectors, and delta scatter scalar
+(see \strong{Value}).  Set to \code{FALSE} to limit disclosure to the
+three scalars strictly needed for the point estimate.}
 
 \item{heterogeneous}{Logical. If \code{TRUE} (default) and
-\code{compute_variance = TRUE}, also return \code{n_k_X_bar} (column sums
-of the covariate design matrix, equal to n_k times the local covariate
-mean), needed for the leverage-corrected variance estimator under full
-heterogeneity (different covariate distributions and treatment probabilities
-across sites).  Set to \code{FALSE} to suppress this extra disclosure when
+\code{compute_variance = TRUE} and \code{outcome_type = "continuous"},
+also return \code{n_k_X_bar} (column sums of the covariate design matrix,
+equal to \eqn{n_k \bar{X}_k}), needed for the leverage-corrected variance
+estimator.  Set to \code{FALSE} to suppress this extra disclosure when
 heterogeneity is known to be absent.  Has no effect when
-\code{compute_variance = FALSE}.}
+\code{compute_variance = FALSE} or \code{outcome_type = "binary"}.}
+
+\item{outcome_type}{A character string, either \code{"continuous"} (default)
+or \code{"binary"}. When \code{"binary"}, the local ATE is computed via
+G-computation: \eqn{\hat\tau_k = n_k^{-1}\sum_i[\mu_1(X_i) - \mu_0(X_i)]}
+where \eqn{\mu_w(x) = \sigma(\hat\alpha_w + x^\top\hat\beta_w)}.
+When \code{compute_variance = TRUE}, the return list additionally contains
+the local Fisher information matrices, gradient raw sums, and delta
+scatter; see \strong{Value}.}
 }
 \value{
-A list with three elements always present:
+A list with at least three elements:
 \item{n_k}{Total sample size on this server.}
 \item{n_k_1}{Number of treated observations on this server.}
 \item{tau_k}{Local ATE estimate \eqn{\hat\tau_k}.}
-When \code{compute_variance = TRUE}, two additional elements are included:
+For \code{outcome_type = "continuous"} with \code{compute_variance = TRUE},
+two additional elements:
 \item{s_k_scalar}{Local sum of squared deviations of the projected index
 \eqn{X_i^\top\Delta\hat\beta} from its local mean; used to pool
 \eqn{\Delta\hat\beta^\top\hat\Sigma\Delta\hat\beta}.}
 \item{rss_k}{Residual sum of squares across both arms using the federated
 coefficients; used to compute \eqn{\hat\sigma^2}.}
-When \code{compute_variance = TRUE} and \code{heterogeneous = TRUE}, one
-further element is included:
-\item{n_k_X_bar}{Numeric vector of length \eqn{d} containing the column
-sums of the covariate matrix (\eqn{n_k \bar{X}_k}); used by the client
-to assemble the global covariate mean for the leverage-corrected
-OLS noise component of the variance.}
+For \code{outcome_type = "continuous"} with \code{compute_variance = TRUE}
+and \code{heterogeneous = TRUE}, one further element:
+\item{n_k_X_bar}{Column sums of the covariate matrix (\eqn{n_k\bar{X}_k});
+used by the client to assemble the global covariate mean for the
+leverage-corrected OLS noise component of the variance.}
+For \code{outcome_type = "binary"} with \code{compute_variance = TRUE},
+five additional elements:
+\item{H1_k}{Local Fisher information matrix for the treated arm,
+\eqn{\mathbf{H}_1^{(k)} = \sum_{\{i \in k:\,W_i=1\}} v_1(x_i)\tilde{x}_i\tilde{x}_i^\top}
+where \eqn{v_w(x_i) = \hat\mu_w(x_i)(1-\hat\mu_w(x_i))}.}
+\item{H0_k}{Local Fisher information matrix for the control arm.}
+\item{g1_raw_k}{Unnormalised gradient sum
+\eqn{\sum_{i \in k} v_1(x_i)\tilde{x}_i} over all observations at this
+site; the client divides by global \eqn{n} to obtain \eqn{\mathbf{g}_1}.}
+\item{g0_raw_k}{Analogous unnormalised sum for the control arm.}
+\item{s_k_delta}{Local scatter
+\eqn{s_k^\delta = \sum_{i \in k}(\delta_i - \hat\tau_k)^2}
+where \eqn{\delta_i = \hat\mu_1(x_i) - \hat\mu_0(x_i)}.}
 }
 \description{
 Server-side aggregate function called after the federated GLM has converged.
 Always returns the quantities needed for the ATE point estimate.  When
-\code{compute_variance = TRUE} (the default) it also returns the residual
-sum of squares and the projected scatter scalar required for the delta-method
-variance; set it to \code{FALSE} to limit disclosure to the minimum needed
-for the point estimate only.
+\code{compute_variance = TRUE} (the default) it also returns the statistics
+required for the delta-method variance; the exact set depends on
+\code{outcome_type} (see \strong{Value}).  Set \code{compute_variance = FALSE}
+to limit disclosure to the minimum needed for the point estimate only.
 }
 \examples{
 \dontrun{

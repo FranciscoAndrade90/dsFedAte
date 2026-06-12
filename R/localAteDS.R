@@ -2,10 +2,10 @@
 #'
 #' Server-side aggregate function called after the federated GLM has converged.
 #' Always returns the quantities needed for the ATE point estimate.  When
-#' \code{compute_variance = TRUE} (the default) it also returns the residual
-#' sum of squares and the projected scatter scalar required for the delta-method
-#' variance; set it to \code{FALSE} to limit disclosure to the minimum needed
-#' for the point estimate only.
+#' \code{compute_variance = TRUE} (the default) it also returns the statistics
+#' required for the delta-method variance; the exact set depends on
+#' \code{outcome_type} (see \strong{Value}).  Set \code{compute_variance = FALSE}
+#' to limit disclosure to the minimum needed for the point estimate only.
 #'
 #' @param base_name A character string naming the server-side data frame.
 #' @param outcome_name A character string naming the outcome variable inside
@@ -21,32 +21,55 @@
 #' @param beta1_str Character. Comma-separated slope coefficients of the
 #'   treated-arm model.
 #' @param compute_variance Logical. If \code{TRUE} (default), also compute and
-#'   return \code{rss_k} and \code{s_k_scalar} for variance estimation.
+#'   return the quantities needed for variance estimation.  For
+#'   \code{outcome_type = "continuous"} these are \code{rss_k} and
+#'   \code{s_k_scalar}; for \code{outcome_type = "binary"} they are the local
+#'   Fisher information matrices, gradient vectors, and delta scatter scalar
+#'   (see \strong{Value}).  Set to \code{FALSE} to limit disclosure to the
+#'   three scalars strictly needed for the point estimate.
 #' @param heterogeneous Logical. If \code{TRUE} (default) and
-#'   \code{compute_variance = TRUE}, also return \code{n_k_X_bar} (column sums
-#'   of the covariate design matrix, equal to n_k times the local covariate
-#'   mean), needed for the leverage-corrected variance estimator under full
-#'   heterogeneity (different covariate distributions and treatment probabilities
-#'   across sites).  Set to \code{FALSE} to suppress this extra disclosure when
+#'   \code{compute_variance = TRUE} and \code{outcome_type = "continuous"},
+#'   also return \code{n_k_X_bar} (column sums of the covariate design matrix,
+#'   equal to \eqn{n_k \bar{X}_k}), needed for the leverage-corrected variance
+#'   estimator.  Set to \code{FALSE} to suppress this extra disclosure when
 #'   heterogeneity is known to be absent.  Has no effect when
-#'   \code{compute_variance = FALSE}.
+#'   \code{compute_variance = FALSE} or \code{outcome_type = "binary"}.
+#' @param outcome_type A character string, either \code{"continuous"} (default)
+#'   or \code{"binary"}. When \code{"binary"}, the local ATE is computed via
+#'   G-computation: \eqn{\hat\tau_k = n_k^{-1}\sum_i[\mu_1(X_i) - \mu_0(X_i)]}
+#'   where \eqn{\mu_w(x) = \sigma(\hat\alpha_w + x^\top\hat\beta_w)}.
+#'   When \code{compute_variance = TRUE}, the return list additionally contains
+#'   the gradient raw sums and delta scatter; see \strong{Value}.  The global
+#'   Fisher information matrix \eqn{\mathbf{H}_w^{-1}} is not returned here —
+#'   the client obtains it directly from
+#'   \code{ds.glm(viewVarCov = TRUE)\$VarCovMatrix}, which equals
+#'   \eqn{\mathbf{H}_w^{-1}} for binomial models (dispersion = 1).
 #'
-#' @return A list with three elements always present:
+#' @return A list with at least three elements:
 #'   \item{n_k}{Total sample size on this server.}
 #'   \item{n_k_1}{Number of treated observations on this server.}
 #'   \item{tau_k}{Local ATE estimate \eqn{\hat\tau_k}.}
-#'   When \code{compute_variance = TRUE}, two additional elements are included:
+#'   For \code{outcome_type = "continuous"} with \code{compute_variance = TRUE},
+#'   two additional elements:
 #'   \item{s_k_scalar}{Local sum of squared deviations of the projected index
 #'     \eqn{X_i^\top\Delta\hat\beta} from its local mean; used to pool
 #'     \eqn{\Delta\hat\beta^\top\hat\Sigma\Delta\hat\beta}.}
 #'   \item{rss_k}{Residual sum of squares across both arms using the federated
 #'     coefficients; used to compute \eqn{\hat\sigma^2}.}
-#'   When \code{compute_variance = TRUE} and \code{heterogeneous = TRUE}, one
-#'   further element is included:
-#'   \item{n_k_X_bar}{Numeric vector of length \eqn{d} containing the column
-#'     sums of the covariate matrix (\eqn{n_k \bar{X}_k}); used by the client
-#'     to assemble the global covariate mean for the leverage-corrected
-#'     OLS noise component of the variance.}
+#'   For \code{outcome_type = "continuous"} with \code{compute_variance = TRUE}
+#'   and \code{heterogeneous = TRUE}, one further element:
+#'   \item{n_k_X_bar}{Column sums of the covariate matrix (\eqn{n_k\bar{X}_k});
+#'     used by the client to assemble the global covariate mean for the
+#'     leverage-corrected OLS noise component of the variance.}
+#'   For \code{outcome_type = "binary"} with \code{compute_variance = TRUE},
+#'   three additional elements:
+#'   \item{g1_raw_k}{Unnormalised gradient sum
+#'     \eqn{\sum_{i \in k} v_1(x_i)\tilde{x}_i} over all observations at this
+#'     site; the client divides by global \eqn{n} to obtain \eqn{\mathbf{g}_1}.}
+#'   \item{g0_raw_k}{Analogous unnormalised sum for the control arm.}
+#'   \item{s_k_delta}{Local scatter
+#'     \eqn{s_k^\delta = \sum_{i \in k}(\delta_i - \hat\tau_k)^2}
+#'     where \eqn{\delta_i = \hat\mu_1(x_i) - \hat\mu_0(x_i)}.}
 #' @references
 #' Khellaf, R., Bellet, A., and Josse, J. (2025).
 #' Federated Causal Inference: Multi-Study ATE Estimation beyond Meta-Analysis.
@@ -54,7 +77,7 @@
 #' Intelligence and Statistics (AISTATS 2025)}.
 #' @importFrom dsBase checkPermissivePrivacyControlLevel listDisclosureSettingsDS
 #' @importFrom cli cli_abort
-#' @importFrom stats model.matrix as.formula
+#' @importFrom stats model.matrix as.formula plogis
 #' @examples
 #' \dontrun{
 #' df <- data.frame(
@@ -68,10 +91,12 @@
 #' @export
 localAteDS <- function(base_name, outcome_name, covariate_names_str, treatment_name,
                        alpha0_str, beta0_str, alpha1_str, beta1_str,
-                       compute_variance = TRUE, heterogeneous = TRUE) {
+                       compute_variance = TRUE, heterogeneous = TRUE,
+                       outcome_type = "continuous") {
 
   # 1. Privacy control level check
   dsBase::checkPermissivePrivacyControlLevel(c("permissive", "banana", "carrot"))
+  outcome_type <- match.arg(outcome_type, c("continuous", "binary"))
 
   # 2. Parse arguments
   covariate_names <- scan(
@@ -96,20 +121,50 @@ localAteDS <- function(base_name, outcome_name, covariate_names_str, treatment_n
     data = base[, covariate_names, drop = FALSE]
   )[, -1L, drop = FALSE]
 
-  delta_alpha <- alpha1 - alpha0
-  gamma       <- beta1  - beta0
-
   n_k   <- nrow(base)
   idx_1 <- W == 1L
+  n_k_1 <- sum(idx_1)
 
-  # 5. Local ATE and projected scatter
+  # 5. ATE computation (model-specific)
+  if (outcome_type == "binary") {
+    X_tilde <- cbind(1, X_mat)
+    mu1     <- plogis(alpha1 + as.numeric(X_mat %*% beta1))
+    mu0     <- plogis(alpha0 + as.numeric(X_mat %*% beta0))
+    delta_i <- mu1 - mu0
+    tau_k   <- mean(delta_i)
+
+    if (!compute_variance) {
+      return(list(n_k = n_k, n_k_1 = n_k_1, tau_k = tau_k))
+    }
+
+    # Logistic variance weights v_w(x_i) = mu_w(x_i)(1 - mu_w(x_i))
+    v1 <- mu1 * (1 - mu1)
+    v0 <- mu0 * (1 - mu0)
+
+    # Gradient raw sums over ALL observations (client divides by global n)
+    g1_raw_k <- colSums(v1 * X_tilde)
+    g0_raw_k <- colSums(v0 * X_tilde)
+
+    # Local scatter of delta_i around the local mean tau_k
+    s_k_delta <- sum((delta_i - tau_k)^2)
+
+    return(list(
+      n_k       = n_k,
+      n_k_1     = n_k_1,
+      tau_k     = tau_k,
+      g1_raw_k  = g1_raw_k,
+      g0_raw_k  = g0_raw_k,
+      s_k_delta = s_k_delta
+    ))
+  }
+
+  # Continuous path: local ATE and projected scatter
   #    proj_bar_k = X̄_k · γ̂ = mean(X_i · γ̂); no need to expose X̄_k itself.
+  delta_alpha <- alpha1 - alpha0
+  gamma       <- beta1  - beta0
   proj_i     <- as.numeric(X_mat %*% gamma)
   proj_bar_k <- mean(proj_i)
   tau_k      <- as.numeric(delta_alpha + proj_bar_k)
-
-  # 6. Number of treated observations
-  n_k_1 <- sum(idx_1)
 
   if (!compute_variance) {
     return(list(n_k = n_k, n_k_1 = n_k_1, tau_k = tau_k))
