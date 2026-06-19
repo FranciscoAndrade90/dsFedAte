@@ -49,33 +49,29 @@
 #'   \item{n_k}{Total sample size on this server.}
 #'   \item{n_k_1}{Number of treated observations on this server.}
 #'   \item{tau_k}{Local ATE estimate \eqn{\hat\tau_k}.}
+#'   When \code{compute_variance = TRUE}, three additional elements common to
+#'   both outcome types:
+#'   \item{s_k}{Local scatter \eqn{\sum_{i \in k}(\delta_i - \hat\tau_k)^2}.
+#'     For continuous outcomes \eqn{\delta_i = X_i^\top\Delta\hat\beta}; for
+#'     binary outcomes \eqn{\delta_i = \hat\mu_1(x_i) - \hat\mu_0(x_i)}.}
+#'   \item{g1_raw_k}{Unnormalised gradient sum for the treated arm; the client
+#'     divides by global \eqn{n}.  For continuous outcomes this equals
+#'     \eqn{(n_k,\, \sum_i X_{ij})}, i.e.\ column sums of \eqn{\tilde{X}};
+#'     for binary outcomes \eqn{\sum_{i \in k} v_1(x_i)\tilde{x}_i}.}
+#'   \item{g0_raw_k}{Analogous sum for the control arm (equals \code{g1_raw_k}
+#'     for continuous outcomes).}
 #'   For \code{outcome_type = "continuous"} with \code{compute_variance = TRUE},
-#'   two additional elements:
-#'   \item{s_k_scalar}{Local sum of squared deviations of the projected index
-#'     \eqn{X_i^\top\Delta\hat\beta} from its local mean; used to pool
-#'     \eqn{\Delta\hat\beta^\top\hat\Sigma\Delta\hat\beta}.}
+#'   one further element:
 #'   \item{rss_k}{Residual sum of squares across both arms using the federated
 #'     coefficients; used to compute \eqn{\hat\sigma^2}.}
-#'   For \code{outcome_type = "continuous"} with \code{compute_variance = TRUE}
-#'   and \code{heterogeneous = TRUE}, one further element:
-#'   \item{n_k_X_bar}{Column sums of the covariate matrix (\eqn{n_k\bar{X}_k});
-#'     used by the client to assemble the global covariate mean for the
-#'     leverage-corrected OLS noise component of the variance.}
-#'   For \code{outcome_type = "binary"} with \code{compute_variance = TRUE},
-#'   three additional elements:
-#'   \item{g1_raw_k}{Unnormalised gradient sum
-#'     \eqn{\sum_{i \in k} v_1(x_i)\tilde{x}_i} over all observations at this
-#'     site; the client divides by global \eqn{n} to obtain \eqn{\mathbf{g}_1}.}
-#'   \item{g0_raw_k}{Analogous unnormalised sum for the control arm.}
-#'   \item{s_k_delta}{Local scatter
-#'     \eqn{s_k^\delta = \sum_{i \in k}(\delta_i - \hat\tau_k)^2}
-#'     where \eqn{\delta_i = \hat\mu_1(x_i) - \hat\mu_0(x_i)}.}
+#'   When \code{outcome_type = "continuous"} and \code{heterogeneous = FALSE},
+#'   \code{g1_raw_k} and \code{g0_raw_k} are omitted.
 #' @references
 #' Khellaf, R., Bellet, A., and Josse, J. (2025).
 #' Federated Causal Inference: Multi-Study ATE Estimation beyond Meta-Analysis.
 #' \emph{Proceedings of the 28th International Conference on Artificial
 #' Intelligence and Statistics (AISTATS 2025)}.
-#' @importFrom dsBase checkPermissivePrivacyControlLevel listDisclosureSettingsDS
+#' @importFrom dsBase checkPermissivePrivacyControlLevel
 #' @importFrom cli cli_abort
 #' @importFrom stats model.matrix as.formula plogis
 #' @examples
@@ -125,109 +121,61 @@ localAteDS <- function(base_name, outcome_name, covariate_names_str, treatment_n
   idx_1 <- W == 1L
   n_k_1 <- sum(idx_1)
 
-  # 5. ATE computation (model-specific)
+  # 5. ATE point estimate (outcome-specific)
   if (outcome_type == "binary") {
     X_tilde <- cbind(1, X_mat)
     mu1     <- plogis(alpha1 + as.numeric(X_mat %*% beta1))
     mu0     <- plogis(alpha0 + as.numeric(X_mat %*% beta0))
     delta_i <- mu1 - mu0
     tau_k   <- mean(delta_i)
-
-    if (!compute_variance) {
-      return(list(n_k = n_k, n_k_1 = n_k_1, tau_k = tau_k))
-    }
-
-    # Logistic variance weights v_w(x_i) = mu_w(x_i)(1 - mu_w(x_i))
-    v1 <- mu1 * (1 - mu1)
-    v0 <- mu0 * (1 - mu0)
-
-    # Gradient raw sums over ALL observations (client divides by global n)
-    g1_raw_k <- colSums(v1 * X_tilde)
-    g0_raw_k <- colSums(v0 * X_tilde)
-
-    # Local scatter of delta_i around the local mean tau_k
-    s_k_delta <- sum((delta_i - tau_k)^2)
-
-    return(list(
-      n_k       = n_k,
-      n_k_1     = n_k_1,
-      tau_k     = tau_k,
-      g1_raw_k  = g1_raw_k,
-      g0_raw_k  = g0_raw_k,
-      s_k_delta = s_k_delta
-    ))
+  } else {
+    delta_alpha <- alpha1 - alpha0
+    gamma       <- beta1  - beta0
+    proj_i      <- as.numeric(X_mat %*% gamma)
+    proj_bar_k  <- mean(proj_i)
+    tau_k       <- as.numeric(delta_alpha + proj_bar_k)
   }
 
-  # Continuous path: local ATE and projected scatter
-  #    proj_bar_k = X̄_k · γ̂ = mean(X_i · γ̂); no need to expose X̄_k itself.
-  delta_alpha <- alpha1 - alpha0
-  gamma       <- beta1  - beta0
-  proj_i     <- as.numeric(X_mat %*% gamma)
-  proj_bar_k <- mean(proj_i)
-  tau_k      <- as.numeric(delta_alpha + proj_bar_k)
-
+  # 6. Early exit when only the point estimate is needed
   if (!compute_variance) {
     return(list(n_k = n_k, n_k_1 = n_k_1, tau_k = tau_k))
   }
 
-  # 7. Residual sum of squares across both arms
-  pred_1 <- alpha1 + as.numeric(X_mat[ idx_1, , drop = FALSE] %*% beta1)
-  pred_0 <- alpha0 + as.numeric(X_mat[!idx_1, , drop = FALSE] %*% beta0)
-  rss_k  <- sum((Y[ idx_1] - pred_1)^2) + sum((Y[!idx_1] - pred_0)^2)
+  # 7. Variance statistics — three independent pieces, then one return
 
-  # 8. Within-site projected scatter (parallel-axis decomposition)
-  s_k_scalar <- sum((proj_i - proj_bar_k)^2)
+  # 7a. Local scatter s_k
+  if (outcome_type == "binary") {
+    s_k <- sum((delta_i - tau_k)^2)
+  } else {
+    s_k <- sum((proj_i - proj_bar_k)^2)
+  }
 
-  result <- list(
-    n_k        = n_k,
-    n_k_1      = n_k_1,
-    tau_k      = tau_k,
-    s_k_scalar = s_k_scalar,
-    rss_k      = rss_k
-  )
-  if (heterogeneous) result$n_k_X_bar <- colSums(X_mat)
+  # 7b. Residual sum of squares (continuous only, needed for sigma2_hat)
+  if (outcome_type == "continuous") {
+    pred_1 <- alpha1 + as.numeric(X_mat[ idx_1, , drop = FALSE] %*% beta1)
+    pred_0 <- alpha0 + as.numeric(X_mat[!idx_1, , drop = FALSE] %*% beta0)
+    rss_k  <- sum((Y[ idx_1] - pred_1)^2) + sum((Y[!idx_1] - pred_0)^2)
+  }
+
+  # 7c. Gradients (binary always; continuous only when heterogeneous = TRUE)
+  if (outcome_type == "binary") {
+    v1       <- mu1 * (1 - mu1)
+    v0       <- mu0 * (1 - mu0)
+    g1_raw_k <- colSums(v1 * X_tilde)
+    g0_raw_k <- colSums(v0 * X_tilde)
+  } else if (heterogeneous) {
+    g_raw_k  <- colSums(cbind(1, X_mat))
+    g1_raw_k <- g_raw_k
+    g0_raw_k <- g_raw_k
+  }
+
+  # 7d. Assemble result
+  result <- list(n_k = n_k, n_k_1 = n_k_1, tau_k = tau_k, s_k = s_k)
+  if (outcome_type == "continuous")                    result$rss_k    <- rss_k
+  if (outcome_type == "binary" || heterogeneous) {
+    result$g1_raw_k <- g1_raw_k
+    result$g0_raw_k <- g0_raw_k
+  }
   return(result)
 }
 
-#' @keywords internal
-#' @noRd
-.checkDisclosureRisk <- function(data) {
-  thr            <- dsBase::listDisclosureSettingsDS()
-  nfilter.subset <- as.numeric(thr$nfilter.subset)
-  if (nrow(data) < nfilter.subset) {
-    cli::cli_abort(
-      c(
-        "x" = "Disclosure risk: dataset has too few rows to proceed.",
-        "i" = "Minimum required: {nfilter.subset}, provided: {nrow(data)}"
-      )
-    )
-  }
-}
-
-#' @keywords internal
-#' @noRd
-.parse_numeric_scalar <- function(x_str, arg_name) {
-  val <- suppressWarnings(as.numeric(x_str))
-  if (is.na(val)) {
-    cli::cli_abort(c(
-      "x" = "`{arg_name}` could not be parsed as a numeric value.",
-      "i" = "Received: {x_str}"
-    ))
-  }
-  val
-}
-
-#' @keywords internal
-#' @noRd
-.parse_numeric_vector <- function(x_str, arg_name) {
-  vals <- suppressWarnings(
-    as.numeric(unlist(strsplit(x_str, split = ",", fixed = TRUE)))
-  )
-  if (any(is.na(vals))) {
-    cli::cli_abort(c(
-      "x" = "`{arg_name}` could not be fully parsed as a numeric vector.",
-      "i" = "Received: {x_str}"
-    ))
-  }
-  vals
-}

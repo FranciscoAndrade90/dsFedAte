@@ -40,7 +40,7 @@ test_that("localAteDS returns all six expected elements (heterogeneous=TRUE defa
              as.character(ALPHA0), paste(BETA0, collapse = ","),
              as.character(ALPHA1), paste(BETA1, collapse = ","))
   expect_type(result, "list")
-  expect_named(result, c("n_k", "n_k_1", "tau_k", "s_k_scalar", "rss_k", "n_k_X_bar"))
+  expect_named(result, c("n_k", "n_k_1", "tau_k", "s_k", "rss_k", "g1_raw_k", "g0_raw_k"))
 })
 
 test_that("localAteDS n_k equals nrow of the data frame", {
@@ -100,37 +100,37 @@ test_that("localAteDS rss_k matches manual residual computation", {
   expect_equal(result$rss_k, as.numeric(rss_exp))
 })
 
-test_that("localAteDS s_k_scalar is non-negative", {
+test_that("localAteDS s_k is non-negative", {
   test_df <- make_test_data()
   result  <- localAteDS("test_df", "Y", "X1,X2", "W",
              as.character(ALPHA0), paste(BETA0, collapse = ","),
              as.character(ALPHA1), paste(BETA1, collapse = ","))
-  expect_gte(result$s_k_scalar, 0)
+  expect_gte(result$s_k, 0)
 })
 
-test_that("localAteDS s_k_scalar is zero when gamma is zero", {
+test_that("localAteDS s_k is zero when gamma is zero", {
   assign("test_df", make_test_data(), envir = .GlobalEnv)
   # BETA1 == BETA0, so gamma = 0 and every projection equals zero
   result  <- localAteDS("test_df", "Y", "X1,X2", "W",
              as.character(ALPHA0), paste(BETA0, collapse = ","),
              as.character(ALPHA1), paste(BETA1, collapse = ","))
-  expect_equal(result$s_k_scalar, 0, tolerance = 1e-10)
+  expect_equal(result$s_k, 0, tolerance = 1e-10)
 })
 
-test_that("localAteDS s_k_scalar is positive for nonzero gamma", {
+test_that("localAteDS s_k is positive for nonzero gamma", {
   assign("test_df", make_test_data(), envir = .GlobalEnv)
   result  <- localAteDS(
     "test_df", "Y", "X1,X2", "W",
     "1.0", "0.3,-0.2",
     "1.5", "0.6, 0.1"   # different beta1 → nonzero gamma
   )
-  expect_gt(result$s_k_scalar, 0)
+  expect_gt(result$s_k, 0)
 })
 
 test_that("localAteDS handles a single covariate", {
   assign("test_df", make_test_data(), envir = .GlobalEnv)
   result  <- localAteDS("test_df", "Y", "X1", "W", "1.0", "0.3", "1.5", "0.3")
-  expect_named(result, c("n_k", "n_k_1", "tau_k", "s_k_scalar", "rss_k", "n_k_X_bar"))
+  expect_named(result, c("n_k", "n_k_1", "tau_k", "s_k", "rss_k", "g1_raw_k", "g0_raw_k"))
   expect_false(is.na(result$tau_k))
 })
 
@@ -200,45 +200,46 @@ test_that(".parse_numeric_vector aborts when any element is non-numeric", {
 
 # heterogeneous = TRUE ---------------------------------------------------------
 
-test_that("localAteDS with heterogeneous=TRUE returns n_k_X_bar in addition to usual elements", {
+test_that("localAteDS with heterogeneous=TRUE returns gradients in addition to usual elements", {
   assign("test_df", make_test_data(), envir = .GlobalEnv)
   result <- localAteDS("test_df", "Y", "X1,X2", "W",
              as.character(ALPHA0), paste(BETA0, collapse = ","),
              as.character(ALPHA1), paste(BETA1, collapse = ","),
              compute_variance = TRUE, heterogeneous = TRUE)
-  expect_named(result, c("n_k", "n_k_1", "tau_k", "s_k_scalar", "rss_k", "n_k_X_bar"))
+  expect_named(result, c("n_k", "n_k_1", "tau_k", "s_k", "rss_k", "g1_raw_k", "g0_raw_k"))
 })
 
-test_that("localAteDS n_k_X_bar has length equal to number of covariates", {
+test_that("localAteDS g1_raw_k has length d+1 (intercept + covariates)", {
   assign("test_df", make_test_data(), envir = .GlobalEnv)
   result <- localAteDS("test_df", "Y", "X1,X2", "W",
              as.character(ALPHA0), paste(BETA0, collapse = ","),
              as.character(ALPHA1), paste(BETA1, collapse = ","),
              compute_variance = TRUE, heterogeneous = TRUE)
-  expect_length(result$n_k_X_bar, 2L)
+  expect_length(result$g1_raw_k, 3L)
 })
 
-test_that("localAteDS n_k_X_bar matches n_k times column means of X", {
+test_that("localAteDS g1_raw_k equals c(n_k, colSums(X_mat)) and g0_raw_k equals g1_raw_k", {
   test_df <- make_test_data()
   assign("test_df", test_df, envir = .GlobalEnv)
   result   <- localAteDS("test_df", "Y", "X1,X2", "W",
                as.character(ALPHA0), paste(BETA0, collapse = ","),
                as.character(ALPHA1), paste(BETA1, collapse = ","),
                compute_variance = TRUE, heterogeneous = TRUE)
-  expected <- colSums(test_df[, c("X1", "X2")])
-  expect_equal(result$n_k_X_bar, expected)
+  expected <- c(nrow(test_df), colSums(test_df[, c("X1", "X2")]))
+  expect_equal(result$g1_raw_k, expected)
+  expect_equal(result$g0_raw_k, result$g1_raw_k)
 })
 
-test_that("localAteDS heterogeneous=FALSE does not include n_k_X_bar", {
+test_that("localAteDS heterogeneous=FALSE does not return gradients", {
   assign("test_df", make_test_data(), envir = .GlobalEnv)
   result <- localAteDS("test_df", "Y", "X1,X2", "W",
              as.character(ALPHA0), paste(BETA0, collapse = ","),
              as.character(ALPHA1), paste(BETA1, collapse = ","),
              heterogeneous = FALSE)
-  expect_named(result, c("n_k", "n_k_1", "tau_k", "s_k_scalar", "rss_k"))
+  expect_named(result, c("n_k", "n_k_1", "tau_k", "s_k", "rss_k"))
 })
 
-test_that("localAteDS compute_variance=FALSE, heterogeneous=TRUE does not include n_k_X_bar", {
+test_that("localAteDS compute_variance=FALSE, heterogeneous=TRUE returns only three elements", {
   assign("test_df", make_test_data(), envir = .GlobalEnv)
   result <- localAteDS("test_df", "Y", "X1,X2", "W",
              as.character(ALPHA0), paste(BETA0, collapse = ","),
@@ -296,7 +297,7 @@ test_that("localAteDS binary with compute_variance=TRUE returns all variance ele
              as.character(ALPHA1), paste(BETA1, collapse = ","),
              compute_variance = TRUE, outcome_type = "binary")
   expect_named(result, c("n_k", "n_k_1", "tau_k",
-                         "g1_raw_k", "g0_raw_k", "s_k_delta"))
+                         "s_k", "g1_raw_k", "g0_raw_k"))
 })
 
 test_that("localAteDS binary with compute_variance=FALSE returns only three elements", {
@@ -318,16 +319,16 @@ test_that("localAteDS binary g1_raw_k and g0_raw_k have length d+1", {
   expect_length(result$g0_raw_k, 3L)
 })
 
-test_that("localAteDS binary s_k_delta is non-negative", {
+test_that("localAteDS binary s_k is non-negative", {
   assign("test_df_bin", make_binary_test_data(), envir = .GlobalEnv)
   result <- localAteDS("test_df_bin", "Y", "X1,X2", "W",
              as.character(ALPHA0), paste(BETA0, collapse = ","),
              as.character(ALPHA1), paste(BETA1, collapse = ","),
              compute_variance = TRUE, outcome_type = "binary")
-  expect_gte(result$s_k_delta, 0)
+  expect_gte(result$s_k, 0)
 })
 
-test_that("localAteDS binary s_k_delta matches manual computation", {
+test_that("localAteDS binary s_k matches manual computation", {
   test_df_bin <- make_binary_test_data()
   assign("test_df_bin", test_df_bin, envir = .GlobalEnv)
   result   <- localAteDS("test_df_bin", "Y", "X1,X2", "W",
@@ -337,7 +338,7 @@ test_that("localAteDS binary s_k_delta matches manual computation", {
   X        <- as.matrix(test_df_bin[, c("X1", "X2")])
   delta_i  <- plogis(ALPHA1 + X %*% BETA1) - plogis(ALPHA0 + X %*% BETA0)
   expected <- sum((delta_i - mean(delta_i))^2)
-  expect_equal(result$s_k_delta, as.numeric(expected))
+  expect_equal(result$s_k, as.numeric(expected))
 })
 
 test_that("localAteDS binary heterogeneous argument has no effect", {
