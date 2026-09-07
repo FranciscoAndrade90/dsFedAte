@@ -14,8 +14,6 @@ Description: Server-side DataSHIELD package that computes local average treatmen
     the analyst. Implements the server-side components of the generalised difference
     estimator of Khellaf, Bellet and Josse (2025) <doi:10.48550/arXiv.2404.18962>,
     enforcing DataSHIELD disclosure controls throughout.
-URL: https://github.com/FranciscoAndrade90/dsRctFed
-BugReports: https://github.com/FranciscoAndrade90/dsRctFed/issues
 License: AGPL (>= 3)
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)

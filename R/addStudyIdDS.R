@@ -1,8 +1,9 @@
 #' Add study membership dummy columns to a server-side data frame
 #'
 #' Server-side assign function called once per server before the adjusted GD
-#' estimator (\code{study_effects = TRUE} in \code{ds.EstimateAte()}) is
-#' fitted.  Appends K-1 explicit 0/1 integer columns named \code{study_id2},
+#' estimator is fitted. Called automatically when
+#' \code{study_effects = TRUE} is passed to \code{ds.EstimateAte()}.
+#' Appends K-1 explicit 0/1 integer columns named \code{study_id2},
 #' \ldots, \code{study_idK} to the server-side data frame.
 #'
 #' These are treatment-contrast dummy columns: column \code{study_idk} equals
@@ -22,7 +23,7 @@
 #'
 #' @param base_name A character string naming the server-side data frame.
 #' @param study_index A character string giving this server's 1-based study
-#'   index (determined by \code{names(datasources)} order on the client).
+#'   index (its position in the client's \code{datasources} list).
 #' @param K_studies A character string giving the total number of studies K.
 #'
 #' @return The augmented data frame with K-1 integer dummy columns
