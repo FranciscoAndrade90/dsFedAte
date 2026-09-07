@@ -1,21 +1,25 @@
 Package: dsRctFed
-Title: Compute Local ATE From Regression Coefficients
-Version: 0.0.0.9000
+Title: Server-Side Local Average Treatment Effect Computation for Federated RCTs
+Version: 0.1.0
 Authors@R: 
   c(person(given = "Francisco",
            family = "Andrade",
            role = c("aut", "cre"),
-           email = "francisco.de-lima-andrade@inria.fr",
-           ),
+           email = "francisco.de-lima-andrade@inria.fr"),
     person(given = "Julie",
            family = "Josse",
            role = "aut"))
-Description: Based on “Federated Causal Inference: Multi-Studies ATE Estimation Beyond Meta-Analysis” (R. Khellaf, A. Bellet, and J. Josse, 2025), this package implements a DATASHIELD aggregate server-side function that computes the local average treatment effect (ATE) using regression coefficients provided by the analyst (client).
+Description: Server-side DataSHIELD package that computes local average treatment
+    effect (ATE) statistics from arm-specific regression coefficients provided by
+    the analyst. Implements the server-side components of the generalised difference
+    estimator of Khellaf, Bellet and Josse (2025) <doi:10.48550/arXiv.2404.18962>,
+    enforcing DataSHIELD disclosure controls throughout.
+URL: https://github.com/FranciscoAndrade90/dsRctFed
+BugReports: https://github.com/FranciscoAndrade90/dsRctFed/issues
 License: AGPL (>= 3)
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 8.0.0
-Additional_repositories: https://cran.obiba.org/
 Imports:
     cli,
     dsBase,
@@ -23,3 +27,4 @@ Imports:
 Suggests:
     devtools,
     testthat (>= 3.0.0)
+Config/testthat/edition: 3
