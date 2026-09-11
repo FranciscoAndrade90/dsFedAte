@@ -2,7 +2,8 @@
 % Please edit documentation in R/localAteDS.R
 \name{localAteDS}
 \alias{localAteDS}
-\title{Compute local statistics for the federated ATE and (optionally) its variance}
+\title{Compute local statistics for the federated average treatment effect (ATE)
+and (optionally) its variance}
 \usage{
 localAteDS(
   base_name,
@@ -39,35 +40,53 @@ control-arm model.}
 \item{beta1_str}{Character. Comma-separated slope coefficients of the
 treated-arm model.}
 
-\item{compute_variance}{Logical. If \code{TRUE} (default), also compute and
-return \code{rss_k}, \code{s_k}, and (when \code{heterogeneous = TRUE})
-\code{g1_raw_k} and \code{g0_raw_k}.  Set to \code{FALSE} to limit
-disclosure to the three scalars strictly needed for the point estimate.}
+\item{compute_variance}{Logical. If \code{TRUE} (default), also return the
+residual sum of squares and the within-site sum of squared deviations of
+the individual treatment-effect projections from their site mean, and —
+when \code{heterogeneous = TRUE} — the column sums of the augmented design
+matrix.  Set to \code{FALSE} to limit disclosure to the three scalars
+strictly needed for the point estimate.}
 
-\item{heterogeneous}{Logical. If \code{TRUE} (default) and
-\code{compute_variance = TRUE}, also return \code{g1_raw_k} and
-\code{g0_raw_k} (column sums of the covariate design matrix), needed for
-the leverage-corrected variance estimator.  Set to \code{FALSE} to
-suppress this extra disclosure when heterogeneity is known to be absent.
-Has no effect when \code{compute_variance = FALSE}.}
+\item{heterogeneous}{Logical. Controls which variance statistics are
+returned.  \code{TRUE} (default) makes no assumption about the
+participating RCTs: each site may have a different covariate distribution
+and a different treatment probability.  The column sums of the augmented
+design matrix are returned so the client can assemble the global covariate
+mean needed for the leverage-corrected variance.  \code{FALSE} assumes all
+RCTs share the same covariate distribution; these column sums are then
+unnecessary and are not returned, limiting disclosure.  Has no effect when
+\code{compute_variance = FALSE}.}
 }
 \value{
-A list with at least three elements:
+A named list. The following three elements are always present:
+\describe{
 \item{n_k}{Total sample size on this server.}
 \item{n_k_1}{Number of treated observations on this server.}
-\item{tau_k}{Local ATE estimate \eqn{\hat\tau_k}.}
-When \code{compute_variance = TRUE}, two further elements are always
-present:
-\item{s_k}{Local scatter \eqn{\sum_{i \in k}(\delta_i - \hat\tau_k)^2}
-where \eqn{\delta_i = X_i^\top\Delta\hat\beta}.}
-\item{rss_k}{Residual sum of squares across both arms using the federated
-coefficients; used to compute \eqn{\hat\sigma^2}.}
+\item{tau_k}{Local average treatment effect estimate \eqn{\hat\tau_k}.}
+}
+When \code{compute_variance = TRUE}, two further elements are added:
+\describe{
+\item{s_k}{Within-site sum of squared deviations of the individual
+treatment-effect projections from their site mean:
+\eqn{\sum_{i \in k}(X_i^\top\hat\gamma - \bar{X}_k^\top\hat\gamma)^2},
+where \eqn{\hat\gamma = \hat\beta_1 - \hat\beta_0} is the difference
+of the arm-specific slope vectors.}
+\item{rss_k}{Residual sum of squares across both arms using the
+federated coefficients; used to estimate \eqn{\hat\sigma^2}.}
+}
 When \code{compute_variance = TRUE} and \code{heterogeneous = TRUE}, two
 additional elements:
-\item{g1_raw_k}{Unnormalised gradient sum \eqn{(n_k,\,\sum_i X_{ij})},
-i.e.\ column sums of \eqn{\tilde{X}}; the client divides by global
-\eqn{n}.}
-\item{g0_raw_k}{Equal to \code{g1_raw_k} for the OLS case.}
+\describe{
+\item{g1_raw_k}{Column sums of the augmented design matrix
+\eqn{(1, X)}: the vector
+\eqn{(n_k,\,\sum_i X_{i1},\,\ldots,\,\sum_i X_{id})}.
+Accumulated across servers by the client to obtain the global
+covariate mean.}
+\item{g0_raw_k}{Identical to \code{g1_raw_k}. The covariate matrix is
+the same for both arms in the OLS G-computation model, and the sign
+difference of the two arm gradients cancels in the quadratic form
+\eqn{g^\top \hat{V} g}, so the same vector serves both.}
+}
 }
 \description{
 Server-side aggregate function called after the federated GLM has converged.
@@ -76,6 +95,12 @@ Always returns the quantities needed for the ATE point estimate.  When
 required for the delta-method variance.  Set \code{compute_variance = FALSE}
 to limit disclosure to the minimum needed for the point estimate only.
 }
+\section{Privacy control level}{
+
+Permitted under \code{permissive}, \code{banana}, and \code{carrot}.
+Blocked under \code{avocado} and \code{non-permissive}.
+}
+
 \examples{
 \dontrun{
 df <- data.frame(
@@ -92,4 +117,8 @@ Khellaf, R., Bellet, A., and Josse, J. (2025).
 Federated Causal Inference: Multi-Study ATE Estimation beyond Meta-Analysis.
 \emph{Proceedings of the 28th International Conference on Artificial
 Intelligence and Statistics (AISTATS 2025)}.
+}
+\seealso{
+\code{\link{addStudyIdDS}}, \code{ds.EstimateAte()} in the
+\pkg{dsRctFedClient} package.
 }

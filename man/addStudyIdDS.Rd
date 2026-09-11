@@ -16,13 +16,14 @@ index (its position in the client's \code{datasources} list).}
 }
 \value{
 The augmented data frame with K-1 integer dummy columns
-(\code{study_id2}, \ldots, \code{study_idK}) appended.
-\code{DSI::datashield.assign()} assigns the return value to the symbol
-specified by the caller.
+(\code{study_id2}, \ldots, \code{study_idK}) appended.  The return
+value is assigned to a server-side symbol by \code{DSI::datashield.assign()}
+on the client.
 }
 \description{
-Server-side assign function called once per server before the adjusted GD
-estimator is fitted. Called automatically when
+Server-side assign function called once per server before the
+study-effects arm-specific regression models are fitted via
+\code{ds.glm()}.  Called automatically when
 \code{study_effects = TRUE} is passed to \code{ds.EstimateAte()}.
 Appends K-1 explicit 0/1 integer columns named \code{study_id2},
 \ldots, \code{study_idK} to the server-side data frame.
@@ -43,6 +44,12 @@ client — they are constants, not individual-level data — so appending them
 carries no disclosure risk beyond the existing \code{nfilter.subset} check
 on the dataset size.
 }
+\section{Privacy control level}{
+
+Permitted under \code{permissive}, \code{banana}, and \code{carrot}.
+Blocked under \code{avocado} and \code{non-permissive}.
+}
+
 \examples{
 \dontrun{
 # Called automatically by ds.EstimateAte(..., study_effects = TRUE).
@@ -56,4 +63,8 @@ Khellaf, R., Bellet, A., and Josse, J. (2025).
 Federated Causal Inference: Multi-Study ATE Estimation beyond Meta-Analysis.
 \emph{Proceedings of the 28th International Conference on Artificial
 Intelligence and Statistics (AISTATS 2025)}.
+}
+\seealso{
+\code{\link{localAteDS}}, \code{ds.EstimateAte()} in the
+\pkg{dsRctFedClient} package.
 }

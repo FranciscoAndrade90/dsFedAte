@@ -1,7 +1,8 @@
 #' Add study membership dummy columns to a server-side data frame
 #'
-#' Server-side assign function called once per server before the adjusted GD
-#' estimator is fitted. Called automatically when
+#' Server-side assign function called once per server before the
+#' study-effects arm-specific regression models are fitted via
+#' \code{ds.glm()}.  Called automatically when
 #' \code{study_effects = TRUE} is passed to \code{ds.EstimateAte()}.
 #' Appends K-1 explicit 0/1 integer columns named \code{study_id2},
 #' \ldots, \code{study_idK} to the server-side data frame.
@@ -27,9 +28,14 @@
 #' @param K_studies A character string giving the total number of studies K.
 #'
 #' @return The augmented data frame with K-1 integer dummy columns
-#'   (\code{study_id2}, \ldots, \code{study_idK}) appended.
-#'   \code{DSI::datashield.assign()} assigns the return value to the symbol
-#'   specified by the caller.
+#'   (\code{study_id2}, \ldots, \code{study_idK}) appended.  The return
+#'   value is assigned to a server-side symbol by \code{DSI::datashield.assign()}
+#'   on the client.
+#' @section Privacy control level:
+#'   Permitted under \code{permissive}, \code{banana}, and \code{carrot}.
+#'   Blocked under \code{avocado} and \code{non-permissive}.
+#' @seealso \code{\link{localAteDS}}, \code{ds.EstimateAte()} in the
+#'   \pkg{dsRctFedClient} package.
 #' @references
 #' Khellaf, R., Bellet, A., and Josse, J. (2025).
 #' Federated Causal Inference: Multi-Study ATE Estimation beyond Meta-Analysis.

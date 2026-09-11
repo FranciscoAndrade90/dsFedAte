@@ -24,5 +24,13 @@ Imports:
     stats
 Suggests:
     devtools,
+    DSI,
+    DSLite,
+    dsBaseClient,
+    dsRctFedClient,
+    knitr,
+    MASS,
+    rmarkdown,
     testthat (>= 3.0.0)
 Config/testthat/edition: 3
+VignetteBuilder: knitr
