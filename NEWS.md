@@ -1,3 +1,11 @@
+# dsRctFed 0.1.1
+
+## Changes
+
+* `localAteDS()` now returns arm-specific residual sums of squares `rss_k_1`
+  and `rss_k_0` instead of the pooled `rss_k`, allowing the client to estimate
+  arm-specific noise variances \eqn{\sigma_1^2} and \eqn{\sigma_0^2}.
+
 # dsRctFed 0.1.0
 
 Initial release.

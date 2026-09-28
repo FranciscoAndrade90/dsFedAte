@@ -42,15 +42,17 @@
 #'     \item{n_k_1}{Number of treated observations on this server.}
 #'     \item{tau_k}{Local average treatment effect estimate \eqn{\hat\tau_k}.}
 #'   }
-#'   When \code{compute_variance = TRUE}, two further elements are added:
+#'   When \code{compute_variance = TRUE}, three further elements are added:
 #'   \describe{
 #'     \item{s_k}{Within-site sum of squared deviations of the individual
 #'       treatment-effect projections from their site mean:
 #'       \eqn{\sum_{i \in k}(X_i^\top\hat\gamma - \bar{X}_k^\top\hat\gamma)^2},
 #'       where \eqn{\hat\gamma = \hat\beta_1 - \hat\beta_0} is the difference
 #'       of the arm-specific slope vectors.}
-#'     \item{rss_k}{Residual sum of squares across both arms using the
-#'       federated coefficients; used to estimate \eqn{\hat\sigma^2}.}
+#'     \item{rss_k_1}{Residual sum of squares for the treated arm using the
+#'       federated coefficients.}
+#'     \item{rss_k_0}{Residual sum of squares for the control arm using the
+#'       federated coefficients.}
 #'   }
 #'   When \code{compute_variance = TRUE} and \code{heterogeneous = TRUE}, two
 #'   additional elements:
@@ -141,12 +143,14 @@ localAteDS <- function(base_name, outcome_name, covariate_names_str, treatment_n
   s_k <- sum((proj_i - proj_bar_k)^2)
 
   # 7b. Residual sum of squares (needed for sigma2_hat)
-  pred_1 <- alpha1 + as.numeric(X_mat[ idx_1, , drop = FALSE] %*% beta1)
-  pred_0 <- alpha0 + as.numeric(X_mat[!idx_1, , drop = FALSE] %*% beta0)
-  rss_k  <- sum((Y[ idx_1] - pred_1)^2) + sum((Y[!idx_1] - pred_0)^2)
+  pred_1  <- alpha1 + as.numeric(X_mat[ idx_1, , drop = FALSE] %*% beta1)
+  pred_0  <- alpha0 + as.numeric(X_mat[!idx_1, , drop = FALSE] %*% beta0)
+  rss_k_1 <- sum((Y[ idx_1] - pred_1)^2)
+  rss_k_0 <- sum((Y[!idx_1] - pred_0)^2)
 
   # 7c. Gradients (only when heterogeneous = TRUE)
-  result <- list(n_k = n_k, n_k_1 = n_k_1, tau_k = tau_k, s_k = s_k, rss_k = rss_k)
+  result <- list(n_k = n_k, n_k_1 = n_k_1, tau_k = tau_k, s_k = s_k,
+                 rss_k_1 = rss_k_1, rss_k_0 = rss_k_0)
   if (heterogeneous) {
     g_raw_k         <- colSums(cbind(1, X_mat))
     result$g1_raw_k <- g_raw_k

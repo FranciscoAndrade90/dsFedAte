@@ -33,14 +33,15 @@ assign("test_df", make_test_data(), envir = .GlobalEnv)
 
 # Happy path: return structure -------------------------------------------------
 
-test_that("localAteDS returns all six expected elements (heterogeneous=TRUE default)", {
+test_that("localAteDS returns all seven expected elements (heterogeneous=TRUE default)", {
   options(datashield.privacyControlLevel = "banana")
   test_df <- make_test_data()
   result  <- localAteDS("test_df", "Y", "X1,X2", "W",
              as.character(ALPHA0), paste(BETA0, collapse = ","),
              as.character(ALPHA1), paste(BETA1, collapse = ","))
   expect_type(result, "list")
-  expect_named(result, c("n_k", "n_k_1", "tau_k", "s_k", "rss_k", "g1_raw_k", "g0_raw_k"))
+  expect_named(result, c("n_k", "n_k_1", "tau_k", "s_k", "rss_k_1", "rss_k_0",
+                         "g1_raw_k", "g0_raw_k"))
 })
 
 test_that("localAteDS n_k equals nrow of the data frame", {
@@ -79,25 +80,25 @@ test_that("localAteDS tau_k matches manual computation", {
   expect_equal(result$tau_k, tau_expected)
 })
 
-test_that("localAteDS rss_k is non-negative", {
+test_that("localAteDS rss_k_1 and rss_k_0 are non-negative", {
   test_df <- make_test_data()
   result  <- localAteDS("test_df", "Y", "X1,X2", "W",
              as.character(ALPHA0), paste(BETA0, collapse = ","),
              as.character(ALPHA1), paste(BETA1, collapse = ","))
-  expect_gte(result$rss_k, 0)
+  expect_gte(result$rss_k_1, 0)
+  expect_gte(result$rss_k_0, 0)
 })
 
-test_that("localAteDS rss_k matches manual residual computation", {
+test_that("localAteDS rss_k_1 and rss_k_0 match manual residual computation", {
   test_df  <- make_test_data()
   result   <- localAteDS("test_df", "Y", "X1,X2", "W",
              as.character(ALPHA0), paste(BETA0, collapse = ","),
              as.character(ALPHA1), paste(BETA1, collapse = ","))
-  idx_1    <- test_df$W == 1L
-  pred_1   <- ALPHA1 + as.matrix(test_df[idx_1,  c("X1","X2")]) %*% BETA1
-  pred_0   <- ALPHA0 + as.matrix(test_df[!idx_1, c("X1","X2")]) %*% BETA0
-  rss_exp  <- sum((test_df$Y[idx_1]  - pred_1)^2) +
-              sum((test_df$Y[!idx_1] - pred_0)^2)
-  expect_equal(result$rss_k, as.numeric(rss_exp))
+  idx_1      <- test_df$W == 1L
+  pred_1     <- ALPHA1 + as.matrix(test_df[ idx_1, c("X1","X2")]) %*% BETA1
+  pred_0     <- ALPHA0 + as.matrix(test_df[!idx_1, c("X1","X2")]) %*% BETA0
+  expect_equal(result$rss_k_1, as.numeric(sum((test_df$Y[ idx_1] - pred_1)^2)))
+  expect_equal(result$rss_k_0, as.numeric(sum((test_df$Y[!idx_1] - pred_0)^2)))
 })
 
 test_that("localAteDS s_k is non-negative", {
@@ -130,7 +131,8 @@ test_that("localAteDS s_k is positive for nonzero gamma", {
 test_that("localAteDS handles a single covariate", {
   assign("test_df", make_test_data(), envir = .GlobalEnv)
   result  <- localAteDS("test_df", "Y", "X1", "W", "1.0", "0.3", "1.5", "0.3")
-  expect_named(result, c("n_k", "n_k_1", "tau_k", "s_k", "rss_k", "g1_raw_k", "g0_raw_k"))
+  expect_named(result, c("n_k", "n_k_1", "tau_k", "s_k", "rss_k_1", "rss_k_0",
+                         "g1_raw_k", "g0_raw_k"))
   expect_false(is.na(result$tau_k))
 })
 
@@ -206,7 +208,8 @@ test_that("localAteDS with heterogeneous=TRUE returns gradients in addition to u
              as.character(ALPHA0), paste(BETA0, collapse = ","),
              as.character(ALPHA1), paste(BETA1, collapse = ","),
              compute_variance = TRUE, heterogeneous = TRUE)
-  expect_named(result, c("n_k", "n_k_1", "tau_k", "s_k", "rss_k", "g1_raw_k", "g0_raw_k"))
+  expect_named(result, c("n_k", "n_k_1", "tau_k", "s_k", "rss_k_1", "rss_k_0",
+                         "g1_raw_k", "g0_raw_k"))
 })
 
 test_that("localAteDS g1_raw_k has length d+1 (intercept + covariates)", {
@@ -236,7 +239,7 @@ test_that("localAteDS heterogeneous=FALSE does not return gradients", {
              as.character(ALPHA0), paste(BETA0, collapse = ","),
              as.character(ALPHA1), paste(BETA1, collapse = ","),
              heterogeneous = FALSE)
-  expect_named(result, c("n_k", "n_k_1", "tau_k", "s_k", "rss_k"))
+  expect_named(result, c("n_k", "n_k_1", "tau_k", "s_k", "rss_k_1", "rss_k_0"))
 })
 
 test_that("localAteDS compute_variance=FALSE, heterogeneous=TRUE returns only three elements", {
