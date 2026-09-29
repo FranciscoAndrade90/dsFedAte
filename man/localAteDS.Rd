@@ -41,11 +41,11 @@ control-arm model.}
 treated-arm model.}
 
 \item{compute_variance}{Logical. If \code{TRUE} (default), also return the
-residual sum of squares and the within-site sum of squared deviations of
-the individual treatment-effect projections from their site mean, and —
-when \code{heterogeneous = TRUE} — the column sums of the augmented design
-matrix.  Set to \code{FALSE} to limit disclosure to the three scalars
-strictly needed for the point estimate.}
+within-site sum of squared deviations of the individual treatment-effect
+projections from their site mean, and — when \code{heterogeneous = TRUE}
+— the column sums of the augmented design matrix.  Set to \code{FALSE} to
+limit disclosure to the three scalars strictly needed for the point
+estimate.}
 
 \item{heterogeneous}{Logical. Controls which variance statistics are
 returned.  \code{TRUE} (default) makes no assumption about the
@@ -64,30 +64,22 @@ A named list. The following three elements are always present:
 \item{n_k_1}{Number of treated observations on this server.}
 \item{tau_k}{Local average treatment effect estimate \eqn{\hat\tau_k}.}
 }
-When \code{compute_variance = TRUE}, three further elements are added:
+When \code{compute_variance = TRUE}, one further element is added:
 \describe{
 \item{s_k}{Within-site sum of squared deviations of the individual
 treatment-effect projections from their site mean:
 \eqn{\sum_{i \in k}(X_i^\top\hat\gamma - \bar{X}_k^\top\hat\gamma)^2},
 where \eqn{\hat\gamma = \hat\beta_1 - \hat\beta_0} is the difference
 of the arm-specific slope vectors.}
-\item{rss_k_1}{Residual sum of squares for the treated arm using the
-federated coefficients.}
-\item{rss_k_0}{Residual sum of squares for the control arm using the
-federated coefficients.}
 }
 When \code{compute_variance = TRUE} and \code{heterogeneous = TRUE}, two
 additional elements:
 \describe{
-\item{g1_raw_k}{Column sums of the augmented design matrix
+\item{g_raw_k}{Column sums of the augmented design matrix
 \eqn{(1, X)}: the vector
 \eqn{(n_k,\,\sum_i X_{i1},\,\ldots,\,\sum_i X_{id})}.
 Accumulated across servers by the client to obtain the global
-covariate mean.}
-\item{g0_raw_k}{Identical to \code{g1_raw_k}. The covariate matrix is
-the same for both arms in the OLS G-computation model, and the sign
-difference of the two arm gradients cancels in the quadratic form
-\eqn{g^\top \hat{V} g}, so the same vector serves both.}
+covariate mean used for both arm gradients.}
 }
 }
 \description{
@@ -99,8 +91,8 @@ to limit disclosure to the minimum needed for the point estimate only.
 }
 \section{Privacy control level}{
 
-Permitted under \code{permissive}, \code{banana}, and \code{carrot}.
-Blocked under \code{avocado} and \code{non-permissive}.
+Permitted under \code{permissive} and \code{banana}.
+Blocked under \code{carrot}, \code{avocado}, and \code{non-permissive}.
 }
 
 \examples{
