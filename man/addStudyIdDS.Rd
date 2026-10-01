@@ -46,8 +46,10 @@ on the dataset size.
 }
 \section{Privacy control level}{
 
-Permitted under \code{permissive}, \code{banana}, and \code{carrot}.
-Blocked under \code{avocado} and \code{non-permissive}.
+\itemize{
+\item Permitted: \code{permissive}, \code{banana}, \code{carrot}.
+\item Blocked: \code{avocado}, \code{non-permissive}.
+}
 }
 
 \examples{

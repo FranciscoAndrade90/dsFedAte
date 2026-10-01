@@ -1,3 +1,12 @@
+# dsRctFed 0.1.2
+
+## Changes
+
+* The getting-started vignette has been removed from this package; the
+  analyst-facing walkthrough is maintained in `dsRctFedClient`, where end users
+  look for it. `dsRctFed` now has no soft dependency on `dsRctFedClient`,
+  `DSI`, `DSLite`, `dsBaseClient`, `knitr`, `rmarkdown`, `MASS`, or `devtools`.
+
 # dsRctFed 0.1.1
 
 ## Changes

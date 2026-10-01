@@ -1,6 +1,6 @@
 Package: dsRctFed
 Title: Server-Side Local Average Treatment Effect Computation for Federated RCTs
-Version: 0.1.1
+Version: 0.1.2
 Authors@R: 
   c(person(given = "Francisco",
            family = "Andrade",
@@ -9,11 +9,11 @@ Authors@R:
     person(given = "Julie",
            family = "Josse",
            role = "aut"))
-Description: Server-side DataSHIELD package that computes local average treatment
+Description: Server-side 'DataSHIELD' package that computes local average treatment
     effect (ATE) statistics from arm-specific regression coefficients provided by
     the analyst. Implements the server-side components of the generalised difference
     estimator of Khellaf, Bellet and Josse (2025) <doi:10.48550/arXiv.2404.18962>,
-    enforcing DataSHIELD disclosure controls throughout.
+    enforcing 'DataSHIELD' disclosure controls throughout.
 License: AGPL (>= 3)
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
@@ -23,14 +23,5 @@ Imports:
     dsBase,
     stats
 Suggests:
-    devtools,
-    DSI,
-    DSLite,
-    dsBaseClient,
-    dsRctFedClient,
-    knitr,
-    MASS,
-    rmarkdown,
     testthat (>= 3.0.0)
 Config/testthat/edition: 3
-VignetteBuilder: knitr

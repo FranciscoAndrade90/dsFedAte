@@ -4,26 +4,24 @@
 <!-- badges: start -->
 <!-- badges: end -->
 
-The goal of dsRctFed is to enable the federated computation of the average treatment effect using 
-data collected in a randomized controlled trial (RCT) setting. 
-This package is intended to be installed on the server side, where the data is stored.
-The corresponding analyst-side package is called dsRctFedClient.
+Server-side 'DataSHIELD' package for federated estimation of the average
+treatment effect (ATE) from a randomised controlled trial (RCT) distributed
+across multiple data nodes. `dsRctFed` is installed on the server side (Opal
+or Armadillo); the analyst-side companion package is `dsRctFedClient`.
 
 ## Installation
 
-You can install the development version of dsRctFed from [GitHub](https://github.com/) with:
-
-``` r
-# install.packages("pak")
-pak::pak("FranciscoAndrade90/dsRctFed")
+```r
+install.packages("dsRctFed")
 ```
 
 ## Example
 
-This is a basic example which shows you how to solve a common problem:
+`dsRctFed` is called indirectly: the analyst runs `dsRctFedClient::ds.EstimateAte()`
+on the client, which dispatches the server-side aggregate function `localAteDS()`
+on each data node. A full worked example is provided in the `getting_started`
+vignette:
 
-``` r
-library(dsRctFed)
-## basic example code
+```r
+vignette("getting_started", package = "dsRctFed")
 ```
-

@@ -1,3 +1,5 @@
 ^dsRctFed\.Rproj$
 ^\.Rproj\.user$
 ^LICENSE\.md$
+^cran-comments\.md$
+^dsRctFed_.*\.tar\.gz$

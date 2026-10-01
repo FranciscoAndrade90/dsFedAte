@@ -32,8 +32,10 @@
 #'   value is assigned to a server-side symbol by \code{DSI::datashield.assign()}
 #'   on the client.
 #' @section Privacy control level:
-#'   Permitted under \code{permissive}, \code{banana}, and \code{carrot}.
-#'   Blocked under \code{avocado} and \code{non-permissive}.
+#'   \itemize{
+#'     \item Permitted: \code{permissive}, \code{banana}, \code{carrot}.
+#'     \item Blocked: \code{avocado}, \code{non-permissive}.
+#'   }
 #' @seealso \code{\link{localAteDS}}, \code{ds.EstimateAte()} in the
 #'   \pkg{dsRctFedClient} package.
 #' @references

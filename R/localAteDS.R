@@ -54,14 +54,16 @@
 #'   additional elements:
 #'   \describe{
 #'     \item{g_raw_k}{Column sums of the augmented design matrix
-#'       \eqn{(1, X)}: the vector
-#'       \eqn{(n_k,\,\sum_i X_{i1},\,\ldots,\,\sum_i X_{id})}.
+#'       \eqn{(1, X)}, i.e. the vector
+#'       \deqn{(n_k,\,\sum\nolimits_i X_{i1},\,\ldots,\,\sum\nolimits_i X_{id}).}
 #'       Accumulated across servers by the client to obtain the global
 #'       covariate mean used for both arm gradients.}
 #'   }
 #' @section Privacy control level:
-#'   Permitted under \code{permissive} and \code{banana}.
-#'   Blocked under \code{carrot}, \code{avocado}, and \code{non-permissive}.
+#'   \itemize{
+#'     \item Permitted: \code{permissive}, \code{banana}.
+#'     \item Blocked: \code{carrot}, \code{avocado}, \code{non-permissive}.
+#'   }
 #' @seealso \code{\link{addStudyIdDS}}, \code{ds.EstimateAte()} in the
 #'   \pkg{dsRctFedClient} package.
 #' @references
