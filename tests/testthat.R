@@ -1,4 +1,4 @@
 library(testthat)
-library(dsRctFed)
+library(dsFedAte)
 
-test_check("dsRctFed")
+test_check("dsFedAte")

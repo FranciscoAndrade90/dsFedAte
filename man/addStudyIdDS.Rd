@@ -68,5 +68,5 @@ Intelligence and Statistics (AISTATS 2025)}.
 }
 \seealso{
 \code{\link{localAteDS}}, \code{ds.EstimateAte()} in the
-\pkg{dsRctFedClient} package.
+\pkg{dsFedAteClient} package.
 }

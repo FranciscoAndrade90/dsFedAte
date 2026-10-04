@@ -1,13 +1,13 @@
-# dsRctFed 0.1.2
+# dsFedAte 0.1.2
 
 ## Changes
 
 * The getting-started vignette has been removed from this package; the
-  analyst-facing walkthrough is maintained in `dsRctFedClient`, where end users
-  look for it. `dsRctFed` now has no soft dependency on `dsRctFedClient`,
+  analyst-facing walkthrough is maintained in `dsFedAteClient`, where end users
+  look for it. `dsFedAte` now has no soft dependency on `dsFedAteClient`,
   `DSI`, `DSLite`, `dsBaseClient`, `knitr`, `rmarkdown`, `MASS`, or `devtools`.
 
-# dsRctFed 0.1.1
+# dsFedAte 0.1.1
 
 ## Changes
 
@@ -15,7 +15,7 @@
   and `rss_k_0` instead of the pooled `rss_k`, allowing the client to estimate
   arm-specific noise variances \eqn{\sigma_1^2} and \eqn{\sigma_0^2}.
 
-# dsRctFed 0.1.0
+# dsFedAte 0.1.0
 
 Initial release.
 

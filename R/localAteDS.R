@@ -65,7 +65,7 @@
 #'     \item Blocked: \code{carrot}, \code{avocado}, \code{non-permissive}.
 #'   }
 #' @seealso \code{\link{addStudyIdDS}}, \code{ds.EstimateAte()} in the
-#'   \pkg{dsRctFedClient} package.
+#'   \pkg{dsFedAteClient} package.
 #' @references
 #' Khellaf, R., Bellet, A., and Josse, J. (2025).
 #' Federated Causal Inference: Multi-Study ATE Estimation beyond Meta-Analysis.

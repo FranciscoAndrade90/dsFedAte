@@ -116,5 +116,5 @@ Intelligence and Statistics (AISTATS 2025)}.
 }
 \seealso{
 \code{\link{addStudyIdDS}}, \code{ds.EstimateAte()} in the
-\pkg{dsRctFedClient} package.
+\pkg{dsFedAteClient} package.
 }

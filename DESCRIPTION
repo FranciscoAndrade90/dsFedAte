@@ -1,4 +1,4 @@
-Package: dsRctFed
+Package: dsFedAte
 Title: Server-Side Local Average Treatment Effect Computation for Federated RCTs
 Version: 0.1.2
 Authors@R: 
@@ -11,7 +11,7 @@ Authors@R:
            role = "aut"))
 Description: Server-side 'DataSHIELD' package that computes local average treatment
     effect (ATE) statistics from arm-specific regression coefficients provided by
-    the analyst. Implements the server-side components of the generalised difference
+    the analyst. Implements the server-side components of the G-formula
     estimator of Khellaf, Bellet and Josse (2025) <doi:10.48550/arXiv.2404.18962>,
     enforcing 'DataSHIELD' disclosure controls throughout.
 License: AGPL (>= 3)
