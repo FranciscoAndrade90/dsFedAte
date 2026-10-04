@@ -9,7 +9,7 @@
 `dsFedAte` is a 'DataSHIELD' server-side package. Its companion analyst-side
 package, `dsFedAteClient`, will be submitted to CRAN shortly after this one.
 The two packages are developed in tandem but `dsFedAte` has no runtime
-dependency on `dsFedAteClient`; the analyst-facing getting-started vignette
+dependency on `dsFedAteClient`; the analyst-facing `federated_rct` vignette
 lives in `dsFedAteClient`, where the end user naturally looks for it.
 
 ## Test environments
