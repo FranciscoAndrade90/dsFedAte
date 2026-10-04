@@ -3,11 +3,11 @@
 #' Server-side assign function called once per server before the
 #' study-effects arm-specific regression models are fitted via
 #' \code{ds.glm()}.  Called automatically when
-#' \code{study_effects = TRUE} is passed to \code{ds.EstimateAte()}.
+#' \code{study_effects = TRUE} is passed to \code{dsFedAteClient::ds.EstimateAte()}.
 #' Appends K-1 explicit 0/1 integer columns named \code{study_id2},
 #' \ldots, \code{study_idK} to the server-side data frame.
 #'
-#' These are treatment-contrast dummy columns: column \code{study_idk} equals
+#' These are dummy columns: column \code{study_idk} equals
 #' \code{1} on the server whose study index is \eqn{k} and \code{0} on every
 #' other server.  Study 1 is the reference level (all dummies zero).
 #'
@@ -33,11 +33,10 @@
 #'   on the client.
 #' @section Privacy control level:
 #'   \itemize{
-#'     \item Permitted: \code{permissive}, \code{banana}, \code{carrot}.
-#'     \item Blocked: \code{avocado}, \code{non-permissive}.
+#'     \item Permitted: \code{permissive}, \code{banana}.
+#'     \item Blocked: \code{carrot}, \code{avocado}, \code{non-permissive}.
 #'   }
-#' @seealso \code{\link{localAteDS}}, \code{ds.EstimateAte()} in the
-#'   \pkg{dsFedAteClient} package.
+#' @seealso \code{\link{localAteDS}}, \code{dsFedAteClient::ds.EstimateAte()}.
 #' @references
 #' Khellaf, R., Bellet, A., and Josse, J. (2025).
 #' Federated Causal Inference: Multi-Study ATE Estimation beyond Meta-Analysis.
@@ -47,7 +46,7 @@
 #' @importFrom cli cli_abort
 #' @examples
 #' \dontrun{
-#' # Called automatically by ds.EstimateAte(..., study_effects = TRUE).
+#' # Called automatically by dsFedAteClient::ds.EstimateAte(..., study_effects = TRUE).
 #' # Direct invocation (per server, from the client):
 #' cally <- call("addStudyIdDS", "study_data", "2", "3")
 #' DSI::datashield.assign(conns["site2"], "study_data_adj", cally)
@@ -56,7 +55,7 @@
 addStudyIdDS <- function(base_name, study_index, K_studies) {
 
   # 1. Privacy control level check
-  dsBase::checkPermissivePrivacyControlLevel(c("permissive", "banana", "carrot"))
+  dsBase::checkPermissivePrivacyControlLevel(c("permissive", "banana"))
 
   # 2. Resolve server-side object
   base <- eval(parse(text = base_name), envir = parent.frame())

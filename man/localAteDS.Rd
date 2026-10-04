@@ -115,6 +115,5 @@ Federated Causal Inference: Multi-Study ATE Estimation beyond Meta-Analysis.
 Intelligence and Statistics (AISTATS 2025)}.
 }
 \seealso{
-\code{\link{addStudyIdDS}}, \code{ds.EstimateAte()} in the
-\pkg{dsFedAteClient} package.
+\code{\link{addStudyIdDS}}, \code{dsFedAteClient::ds.EstimateAte()}.
 }
