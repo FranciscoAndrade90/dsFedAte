@@ -20,8 +20,8 @@ install.packages("dsFedAte")
 `dsFedAte` is called indirectly: the analyst runs `dsFedAteClient::ds.EstimateAte()`
 on the client, which dispatches the server-side aggregate function `localAteDS()`
 on each data node. A full worked example is provided in the `getting_started`
-vignette:
+vignette of the client package:
 
 ```r
-vignette("getting_started", package = "dsFedAte")
+vignette("getting_started", package = "dsFedAteClient")
 ```
