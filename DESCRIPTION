@@ -1,6 +1,6 @@
 Package: dsFedAte
 Title: Server-Side Local Average Treatment Effect Computation for Federated Studies
-Version: 0.1.2
+Version: 0.1.0
 Authors@R:
   c(person(given = "Francisco",
            family = "Andrade",
