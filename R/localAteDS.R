@@ -137,7 +137,7 @@ localAteDS <- function(base_name, outcome_name, covariate_names_str, treatment_n
 
   result <- list(n_k = n_k, n_k_1 = n_k_1, tau_k = tau_k, s_k = s_k)
 
-  # 7b. Gradients (heterogeneous = TRUE only)
+  # 7b. Covariate sums (heterogeneous = TRUE only)
   if (heterogeneous) {
     result$g_raw_k <- colSums(cbind(1, X_mat))
   }
