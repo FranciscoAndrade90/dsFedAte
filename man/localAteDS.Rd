@@ -89,12 +89,13 @@ Always returns the quantities needed for the ATE point estimate.  When
 required for the delta-method variance.  Set \code{compute_variance = FALSE}
 to limit disclosure to the minimum needed for the point estimate only.
 }
-\section{Privacy control level}{
+\section{Privacy control}{
 
-\itemize{
-\item Permitted: \code{permissive}, \code{banana}.
-\item Blocked: \code{carrot}, \code{avocado}, \code{non-permissive}.
-}
+This function has no privacy-level gate: it is an aggregate that relies on
+\code{nfilter.subset} for disclosure control (dataset size and per-arm
+counts) and matches the dsBase convention for aggregate functions
+(\code{meanDS}, \code{glmDS1}, \code{varDS}, \code{tableDS}, etc.), which
+are likewise ungated.
 }
 
 \examples{
@@ -104,7 +105,7 @@ df <- data.frame(
   W  = rbinom(30, 1, 0.5)
 )
 df$Y <- 1 + 0.5 * df$W + 0.3 * df$X1 + rnorm(30, sd = 0.5)
-options(datashield.privacyControlLevel = "banana", nfilter.subset = 3)
+options(nfilter.subset = 3)
 localAteDS("df", "Y", "X1,X2", "W", "1.0", "0.3,0.0", "1.5", "0.3,0.0")
 }
 }

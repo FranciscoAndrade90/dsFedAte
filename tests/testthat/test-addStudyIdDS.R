@@ -116,6 +116,22 @@ test_that("addStudyIdDS is blocked under non-permissive privacy level", {
   options(datashield.privacyControlLevel = "banana")
 })
 
+test_that("addStudyIdDS is blocked under avocado privacy level", {
+  options(datashield.privacyControlLevel = "avocado")
+  assign("test_df", make_test_data(), envir = .GlobalEnv)
+  expect_error(addStudyIdDS("test_df", "1", "2"), "BLOCKED")
+  options(datashield.privacyControlLevel = "banana")
+})
+
+test_that("addStudyIdDS runs under carrot privacy level", {
+  options(datashield.privacyControlLevel = "carrot")
+  assign("test_df", make_test_data(), envir = .GlobalEnv)
+  result <- addStudyIdDS("test_df", "1", "2")
+  expect_s3_class(result, "data.frame")
+  expect_true("study_id2" %in% colnames(result))
+  options(datashield.privacyControlLevel = "banana")
+})
+
 # Sad path: disclosure check --------------------------------------------------
 
 test_that("addStudyIdDS errors when dataset is below nfilter.subset", {

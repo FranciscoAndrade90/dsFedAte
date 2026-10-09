@@ -2,14 +2,35 @@
 #' @noRd
 #' @importFrom dsBase listDisclosureSettingsDS
 #' @importFrom cli cli_abort
-.checkDisclosureRisk <- function(data) {
+.checkDisclosureRisk <- function(data, treatment_name = NULL) {
   thr            <- dsBase::listDisclosureSettingsDS()
   nfilter.subset <- as.numeric(thr$nfilter.subset)
-  if (nrow(data) < nfilter.subset) {
+  n_k            <- nrow(data)
+  if (n_k < nfilter.subset) {
     cli::cli_abort(
       c(
         "x" = "Disclosure risk: dataset has too few rows to proceed.",
-        "i" = "Minimum required: {nfilter.subset}, provided: {nrow(data)}"
+        "i" = "Minimum required: {nfilter.subset}, provided: {n_k}"
+      )
+    )
+  }
+  if (is.null(treatment_name)) return(invisible(NULL))
+  treatment <- data[[treatment_name]]
+  n_k_1     <- sum(treatment == 1L, na.rm = TRUE)
+  n_k_0     <- sum(treatment == 0L, na.rm = TRUE)
+  if (n_k_1 < nfilter.subset) {
+    cli::cli_abort(
+      c(
+        "x" = "Disclosure risk: too few treated units to proceed.",
+        "i" = "Minimum required: {nfilter.subset}, provided: {n_k_1}"
+      )
+    )
+  }
+  if (n_k_0 < nfilter.subset) {
+    cli::cli_abort(
+      c(
+        "x" = "Disclosure risk: too few control units to proceed.",
+        "i" = "Minimum required: {nfilter.subset}, provided: {n_k_0}"
       )
     )
   }

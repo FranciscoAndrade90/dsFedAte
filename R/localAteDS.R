@@ -59,18 +59,18 @@
 #'       Accumulated across servers by the client to obtain the global
 #'       covariate mean used for both arm gradients.}
 #'   }
-#' @section Privacy control level:
-#'   \itemize{
-#'     \item Permitted: \code{permissive}, \code{banana}.
-#'     \item Blocked: \code{carrot}, \code{avocado}, \code{non-permissive}.
-#'   }
+#' @section Privacy control:
+#'   This function has no privacy-level gate: it is an aggregate that relies on
+#'   \code{nfilter.subset} for disclosure control (dataset size and per-arm
+#'   counts) and matches the dsBase convention for aggregate functions
+#'   (\code{meanDS}, \code{glmDS1}, \code{varDS}, \code{tableDS}, etc.), which
+#'   are likewise ungated.
 #' @seealso \code{\link{addStudyIdDS}}, \code{dsFedAteClient::ds.EstimateAte()}.
 #' @references
 #' Khellaf, R., Bellet, A., and Josse, J. (2025).
 #' Federated Causal Inference: Multi-Study ATE Estimation beyond Meta-Analysis.
 #' \emph{Proceedings of the 28th International Conference on Artificial
 #' Intelligence and Statistics (AISTATS 2025)}.
-#' @importFrom dsBase checkPermissivePrivacyControlLevel
 #' @importFrom cli cli_abort
 #' @importFrom stats model.matrix as.formula
 #' @examples
@@ -80,7 +80,7 @@
 #'   W  = rbinom(30, 1, 0.5)
 #' )
 #' df$Y <- 1 + 0.5 * df$W + 0.3 * df$X1 + rnorm(30, sd = 0.5)
-#' options(datashield.privacyControlLevel = "banana", nfilter.subset = 3)
+#' options(nfilter.subset = 3)
 #' localAteDS("df", "Y", "X1,X2", "W", "1.0", "0.3,0.0", "1.5", "0.3,0.0")
 #' }
 #' @export
@@ -88,10 +88,7 @@ localAteDS <- function(base_name, outcome_name, covariate_names_str, treatment_n
                        alpha0_str, beta0_str, alpha1_str, beta1_str,
                        compute_variance = TRUE, heterogeneous = TRUE) {
 
-  # 1. Privacy control level check
-  dsBase::checkPermissivePrivacyControlLevel(c("permissive", "banana"))
-
-  # 2. Parse arguments
+  # 1. Parse arguments
   covariate_names <- scan(
     text = covariate_names_str, what = "", sep = ",",
     strip.white = TRUE, quiet = TRUE
@@ -103,10 +100,10 @@ localAteDS <- function(base_name, outcome_name, covariate_names_str, treatment_n
 
   base <- eval(parse(text = base_name), envir = parent.frame())
 
-  # 3. Disclosure check
-  .checkDisclosureRisk(base)
+  # 2. Disclosure check
+  .checkDisclosureRisk(base, treatment_name)
 
-  # 4. Extract data components
+  # 3. Extract data components
   W     <- base[[treatment_name]]
   Y     <- base[[outcome_name]]
   X_mat <- model.matrix(
@@ -118,26 +115,26 @@ localAteDS <- function(base_name, outcome_name, covariate_names_str, treatment_n
   idx_1 <- W == 1L
   n_k_1 <- sum(idx_1)
 
-  # 5. ATE point estimate
+  # 4. ATE point estimate
   delta_alpha <- alpha1 - alpha0
   gamma       <- beta1  - beta0
   proj_i      <- as.numeric(X_mat %*% gamma)
   proj_bar_k  <- mean(proj_i)
   tau_k       <- as.numeric(delta_alpha + proj_bar_k)
 
-  # 6. Early exit when only the point estimate is needed
+  # 5. Early exit when only the point estimate is needed
   if (!compute_variance) {
     return(list(n_k = n_k, n_k_1 = n_k_1, tau_k = tau_k))
   }
 
-  # 7. Variance statistics
+  # 6. Variance statistics
 
-  # 7a. Local scatter s_k
+  # 6a. Local scatter s_k
   s_k <- sum((proj_i - proj_bar_k)^2)
 
   result <- list(n_k = n_k, n_k_1 = n_k_1, tau_k = tau_k, s_k = s_k)
 
-  # 7b. Covariate sums (heterogeneous = TRUE only)
+  # 6b. Covariate sums (heterogeneous = TRUE only)
   if (heterogeneous) {
     result$g_raw_k <- colSums(cbind(1, X_mat))
   }

@@ -33,8 +33,8 @@
 #'   on the client.
 #' @section Privacy control level:
 #'   \itemize{
-#'     \item Permitted: \code{permissive}, \code{banana}.
-#'     \item Blocked: \code{carrot}, \code{avocado}, \code{non-permissive}.
+#'     \item Permitted: \code{permissive}, \code{banana}, \code{carrot}.
+#'     \item Blocked: \code{avocado}, \code{non-permissive}.
 #'   }
 #' @seealso \code{\link{localAteDS}}, \code{dsFedAteClient::ds.EstimateAte()}.
 #' @references
@@ -55,7 +55,7 @@
 addStudyIdDS <- function(base_name, study_index, K_studies) {
 
   # 1. Privacy control level check
-  dsBase::checkPermissivePrivacyControlLevel(c("permissive", "banana"))
+  dsBase::checkPermissivePrivacyControlLevel(c("permissive", "banana", "carrot"))
 
   # 2. Resolve server-side object
   base <- eval(parse(text = base_name), envir = parent.frame())

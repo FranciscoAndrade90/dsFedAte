@@ -138,17 +138,6 @@ test_that("localAteDS compute_variance=FALSE tau_k matches full call", {
   expect_equal(ate_only$n_k_1, full$n_k_1)
 })
 
-# Sad path: privacy control level ----------------------------------------------
-
-test_that("localAteDS is blocked under non-permissive privacy level", {
-  options(datashield.privacyControlLevel = "non-permissive")
-  assign("test_df", make_test_data(), envir = .GlobalEnv)
-  expect_error(localAteDS("test_df", "Y", "X1,X2", "W",
-             as.character(ALPHA0), paste(BETA0, collapse = ","),
-             as.character(ALPHA1), paste(BETA1, collapse = ",")), "BLOCKED")
-  options(datashield.privacyControlLevel = "banana")
-})
-
 # Sad path: disclosure check ---------------------------------------------------
 
 test_that("localAteDS errors when dataset is below nfilter.subset", {
@@ -163,8 +152,49 @@ test_that("localAteDS errors when dataset is below nfilter.subset", {
 test_that(".checkDisclosureRisk aborts when nrow < nfilter.subset", {
   options(nfilter.subset = 5)
   small_df <- data.frame(X1 = 1:3, X2 = 1:3, W = c(0L, 1L, 0L))
-  expect_error(.checkDisclosureRisk(small_df), "too few rows")
+  expect_error(.checkDisclosureRisk(small_df, "W"), "too few rows")
   options(nfilter.subset = 3)
+})
+
+test_that(".checkDisclosureRisk aborts when treated arm < nfilter.subset", {
+  options(nfilter.subset = 3)
+  # 10 rows total but only 1 treated
+  df <- data.frame(X1 = rnorm(10), X2 = rnorm(10),
+                   W = c(1L, rep(0L, 9)))
+  expect_error(.checkDisclosureRisk(df, "W"), "too few treated units")
+})
+
+test_that(".checkDisclosureRisk aborts when control arm < nfilter.subset", {
+  options(nfilter.subset = 3)
+  df <- data.frame(X1 = rnorm(10), X2 = rnorm(10),
+                   W = c(0L, rep(1L, 9)))
+  expect_error(.checkDisclosureRisk(df, "W"), "too few control units")
+})
+
+test_that("localAteDS errors on lopsided arm counts (direct-call attack)", {
+  options(datashield.privacyControlLevel = "banana", nfilter.subset = 3)
+  # 20 rows but only 1 treated: upstream subset would have blocked this,
+  # but a direct call must also refuse to disclose n_k_1 = 1.
+  skewed <- data.frame(X1 = rnorm(20), X2 = rnorm(20),
+                       W  = c(1L, rep(0L, 19)))
+  skewed$Y <- rnorm(20)
+  assign("skewed_df", skewed, envir = .GlobalEnv)
+  expect_error(
+    localAteDS("skewed_df", "Y", "X1,X2", "W",
+               as.character(ALPHA0), paste(BETA0, collapse = ","),
+               as.character(ALPHA1), paste(BETA1, collapse = ",")),
+    "too few treated units"
+  )
+})
+
+test_that("localAteDS has no privacy-level gate (runs under non-permissive)", {
+  options(datashield.privacyControlLevel = "non-permissive")
+  assign("test_df", make_test_data(), envir = .GlobalEnv)
+  result <- localAteDS("test_df", "Y", "X1,X2", "W",
+             as.character(ALPHA0), paste(BETA0, collapse = ","),
+             as.character(ALPHA1), paste(BETA1, collapse = ","))
+  expect_named(result, c("n_k", "n_k_1", "tau_k", "s_k", "g_raw_k"))
+  options(datashield.privacyControlLevel = "banana")
 })
 
 # Sad path: numeric parsing ----------------------------------------------------
