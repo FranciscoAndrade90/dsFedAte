@@ -2,10 +2,12 @@
 #' and (optionally) its variance
 #'
 #' Server-side aggregate function called after the federated GLM has converged.
-#' Always returns the quantities needed for the ATE point estimate.  When
+#' Always returns three scalars: \eqn{\hat\tau_k} and \eqn{n_k} are sufficient
+#' for the ATE point estimate; \eqn{n_k^{(1)}} is additionally returned so the
+#' client can check arm sizes for asymptotic reliability.  When
 #' \code{compute_variance = TRUE} (the default) it also returns the statistics
 #' required for the delta-method variance.  Set \code{compute_variance = FALSE}
-#' to limit disclosure to the minimum needed for the point estimate only.
+#' to omit these additional disclosure steps.
 #'
 #' @param base_name A character string naming the server-side data frame.
 #' @param outcome_name A character string naming the outcome variable inside
@@ -39,7 +41,10 @@
 #' @return A named list. The following three elements are always present:
 #'   \describe{
 #'     \item{n_k}{Total sample size on this server.}
-#'     \item{n_k_1}{Number of treated observations on this server.}
+#'     \item{n_k_1}{Number of treated observations on this server.  Not used in
+#'       the point estimate computation itself; returned so the client can check
+#'       whether arm sizes are large enough for the asymptotic approximation to
+#'       be reliable.}
 #'     \item{tau_k}{Local average treatment effect estimate \eqn{\hat\tau_k}.}
 #'   }
 #'   When \code{compute_variance = TRUE}, one further element is added:
